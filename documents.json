@@ -52,5 +52,17 @@
     "updatedAt": "2026-10-13T10:58:48.405Z",
     "size": 4446,
     "expiresAt": "2026-10-20T10:36:40.279Z"
+  },
+  {
+    "slug": "cowork-market-research",
+    "id": "ab8438d3cbbbc4d9b182f3a9b64bdc30",
+    "title": "AI Cowork — Market Research & Reference Architecture (AgentOps V2)",
+    "category": "Research",
+    "description": "14 nền tảng AI Cowork, ma trận năng lực, 12 pattern hội tụ và kiến trúc tham chiếu cho AgentOps V2.",
+    "path": "docs/ab8438d3cbbbc4d9b182f3a9b64bdc30/index.html",
+    "visibility": "unlisted",
+    "updatedAt": "2026-10-13T11:13:40.920Z",
+    "size": 180002,
+    "expiresAt": "2026-10-20T11:13:40.920Z"
   }
 ]
