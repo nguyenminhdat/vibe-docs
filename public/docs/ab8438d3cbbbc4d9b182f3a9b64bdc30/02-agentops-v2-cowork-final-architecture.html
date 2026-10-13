@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head><meta name="robots" content="noindex, nofollow"><meta name="referrer" content="no-referrer">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>02 · AgentOps V2 + Cowork — Final Architecture</title>
+<script>(function(){var t=localStorage.getItem('ao-theme');if(t==='dark'||(!t&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.classList.add('dark');})();</script>
+<style>
+/* ===== AgentOps V2 visual kit (shared by 01 + 02 — keep identical) ===== */
+:root{
+  --bg:#faf9f5;--panel:#fffefc;--ink:#1f1e1c;--ink2:#5f5d57;--ink3:#8f8c84;--line:#e6e3d9;--soft:#f2f0e8;
+  --accent:#d97757;
+  --exist:#6a8a4a;--ext:#4a78a8;--new:#8656a6;--extn:#8a877e;--oss:#3a857c;--avoid:#b4443a;
+  --tai:#b08a2e;--nao:#b0516a;--tay:#c4683a;--mieng:#357f9e;
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,"Helvetica Neue",Arial,sans-serif;
+  --serif:Georgia,-apple-system,BlinkMacSystemFont,"Segoe UI",serif;
+  --mono:SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --r:14px;--shadow:none;
+}
+html.dark{--bg:#2a2926;--panel:#32302c;--ink:#f3f1ea;--ink2:#c9c5b9;--ink3:#a19d92;--line:#46433d;--soft:#302e2a;--accent:#e08a6b;--exist:#9bb07e;--ext:#8fadcc;--new:#b89ccc;--extn:#a8a49a;--oss:#78aea6;--avoid:#df7a6a;--tai:#d4b26a;--nao:#cf8c9c;--tay:#df9668;--mieng:#7fb3c8;--shadow:none}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.55 var(--font);-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:var(--serif);font-weight:500;letter-spacing:-.01em}
+::selection{background:color-mix(in srgb,var(--accent) 25%,transparent)}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline;text-underline-offset:3px}
+code{font:11.5px var(--mono);background:var(--soft);color:var(--ink2);padding:1px 5px;border-radius:4px}
+.wrap{max-width:1480px;margin:0 auto;padding:0 24px}
+/* top bar */
+.top{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;align-items:center;gap:18px;height:54px}
+.brand{font:500 16px var(--serif);white-space:nowrap}.brand b{color:var(--accent);font-weight:500}
+.top nav{display:flex;gap:4px;flex-wrap:wrap}
+.top nav a{color:var(--ink2);padding:6px 10px;border-radius:999px;font-size:13px;white-space:nowrap}
+.top nav a:hover{background:var(--soft);color:var(--ink);text-decoration:none}
+.top .sp{flex:1}
+.btn{border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:999px;padding:6px 14px;font:500 12.5px var(--font);cursor:pointer}
+.btn:hover{border-color:var(--ink3);text-decoration:none}.btn.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn:focus-visible,.top nav a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+/* legend chips */
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:12px;color:var(--ink2)}
+.lg{display:inline-flex;align-items:center;gap:6px}
+.sw{width:12px;height:12px;border-radius:50%;border:1.5px solid currentColor;background:color-mix(in srgb,currentColor 18%,transparent);display:inline-block}
+.sw.dash{border-style:dashed}
+.c-exist{color:var(--exist)}.c-ext{color:var(--ext)}.c-new{color:var(--new)}.c-extn{color:var(--extn)}.c-oss{color:var(--oss)}.c-avoid{color:var(--avoid)}
+.c-tai{color:var(--tai)}.c-nao{color:var(--nao)}.c-tay{color:var(--tay)}.c-mieng{color:var(--mieng)}
+/* capability + status pills */
+.cap{display:inline-flex;align-items:center;font:600 10px/1 var(--font);letter-spacing:.05em;padding:3px 7px;border-radius:999px;white-space:nowrap;border:1px solid currentColor}
+.cap.tai{color:var(--tai)}.cap.nao{color:var(--nao)}.cap.tay{color:var(--tay)}.cap.mieng{color:var(--mieng)}
+.cap{background:color-mix(in srgb,currentColor 9%,var(--panel))}
+.pill{display:inline-flex;align-items:center;gap:5px;font:500 11px/1 var(--font);padding:4px 9px;border-radius:999px;border:1px solid currentColor;background:color-mix(in srgb,currentColor 7%,transparent);white-space:nowrap}
+.pill.dash{border-style:dashed}
+.lic{font:500 10.5px/1 var(--font);color:var(--ink2);background:var(--soft);border:1px solid var(--line);padding:3px 7px;border-radius:999px;white-space:nowrap}
+.lic.warn{color:var(--avoid);border-color:color-mix(in srgb,var(--avoid) 40%,transparent);background:color-mix(in srgb,var(--avoid) 8%,var(--panel))}
+.lic.com{color:var(--ext);border-color:color-mix(in srgb,var(--ext) 35%,transparent);background:color-mix(in srgb,var(--ext) 7%,var(--panel))}
+/* sections */
+section.sec,.hero{scroll-margin-top:70px}
+section.sec{margin:0;background:transparent;border:0;border-top:1px solid var(--line);border-radius:0;padding:44px 0 40px}
+.sh{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+.sh .k{font:600 11px/1 var(--font);letter-spacing:.14em;color:var(--accent);text-transform:uppercase}
+.sh h2{margin:10px 0 0;font-size:27px;line-height:1.25;max-width:1080px}
+.msg{margin:10px 0 0;font-size:15px;line-height:1.6;color:var(--ink2);max-width:980px}
+.msg b{color:var(--ink);font-weight:600}
+.note{font-size:12px;color:var(--ink3)}
+/* zoomable diagram frame */
+.zwrap{position:relative;border:1px solid var(--line);border-radius:16px;background:var(--panel);overflow:hidden;padding-top:42px}
+.zwrap:fullscreen{background:var(--bg);border-radius:0}
+.ztool{position:absolute;top:6px;right:8px;z-index:3;display:flex;gap:2px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:3px 6px}
+.ztool button{width:28px;height:26px;border:0;background:transparent;color:var(--ink2);border-radius:999px;cursor:pointer;font:500 14px var(--font)}
+.ztool button:hover{background:var(--soft)}
+.ic{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.4;stroke-linejoin:round;vertical-align:-3px}.ic .fill{fill:currentColor;stroke:none}
+.gn{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;border:1px solid var(--ink3);font:600 11px/1 var(--font);color:var(--ink2);margin-right:6px;vertical-align:2px}
+.ztool .zpct{font:600 11px var(--mono);color:var(--ink2);min-width:40px;text-align:center}
+.zhint{position:absolute;left:16px;top:14px;z-index:3;font-size:11.5px;color:var(--ink3);pointer-events:none}
+.zvp{overflow:hidden;cursor:grab;touch-action:none}
+.zvp.grab{cursor:grabbing}
+.zst{transform-origin:0 0;will-change:transform}
+.zst svg{display:block;width:100%;height:auto}
+.dgrid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px}
+.dpanel{border:1px solid var(--line);border-radius:14px;padding:16px 18px;background:var(--panel);font-size:13px;line-height:1.55;align-self:start;position:sticky;top:70px}
+.dpanel h4{margin:8px 0 4px;font:500 17px var(--serif)}
+.dpanel .dm{font:12px var(--mono);color:var(--ink2);word-break:break-word}
+.dpanel .db{margin-top:8px;color:var(--ink)}
+.dpanel .dr{margin-top:10px;display:flex;flex-wrap:wrap;gap:4px}
+.dpanel .empty{color:var(--ink3)}
+.dpanel.float{position:absolute;right:12px;bottom:12px;top:auto;width:340px;max-height:62%;overflow:auto;z-index:4;display:none;box-shadow:0 8px 28px rgba(31,30,28,.12)}
+.dpanel.float.show{display:block}
+.dpanel .dx{float:right;border:0;background:transparent;color:var(--ink2);font:600 18px/1 var(--font);cursor:pointer;padding:0 2px}
+/* svg diagram classes */
+.zone{fill:var(--bg);stroke:var(--line);stroke-width:1}
+.zone-tai{fill:color-mix(in srgb,var(--tai) 5%,var(--bg));stroke:color-mix(in srgb,var(--tai) 30%,transparent)}
+.zone-nao{fill:color-mix(in srgb,var(--nao) 4%,var(--bg));stroke:color-mix(in srgb,var(--nao) 30%,transparent)}
+.zone-tay{fill:color-mix(in srgb,var(--tay) 5%,var(--bg));stroke:color-mix(in srgb,var(--tay) 30%,transparent)}
+.zone-mieng{fill:color-mix(in srgb,var(--mieng) 5%,var(--bg));stroke:color-mix(in srgb,var(--mieng) 30%,transparent)}
+.zone-dev{fill:color-mix(in srgb,var(--tay) 3%,var(--bg));stroke:color-mix(in srgb,var(--tay) 70%,transparent);stroke-width:1.2;stroke-dasharray:7 5}
+.zone-srv{fill:color-mix(in srgb,var(--ext) 3%,var(--bg));stroke:color-mix(in srgb,var(--ext) 70%,transparent);stroke-width:1.2}
+.zone-ext{fill:var(--bg);stroke:var(--extn);stroke-width:1.2;stroke-dasharray:6 5}
+.zone-sub{fill:var(--panel);stroke:var(--line);stroke-width:1}
+.zone-n{fill:var(--soft);stroke:var(--line)}
+.zone-sub{fill:var(--panel)}
+.zl{font:500 14px var(--serif);fill:var(--ink)}
+.zl-tai{fill:var(--tai)}.zl-nao{fill:var(--nao)}.zl-tay{fill:var(--tay)}.zl-mieng{fill:var(--mieng)}.zl-dev{fill:var(--tay)}.zl-srv{fill:var(--ext)}.zl-ext{fill:var(--extn)}
+.zs{font:500 11px var(--font);fill:var(--ink2)}
+.nb{fill:var(--panel);stroke:var(--line);stroke-width:1.2}
+.nbar{fill:var(--ink3)}
+.st-exist .nb{stroke:color-mix(in srgb,var(--exist) 62%,var(--line))}.st-exist .nbar{fill:var(--exist)}
+.st-ext .nb{stroke:color-mix(in srgb,var(--ext) 62%,var(--line))}.st-ext .nbar{fill:var(--ext)}
+.st-new .nb{stroke:color-mix(in srgb,var(--new) 62%,var(--line))}.st-new .nbar{fill:var(--new)}
+.st-extn .nb{stroke:color-mix(in srgb,var(--extn) 62%,var(--line));stroke-dasharray:5 4}.st-extn .nbar{fill:var(--extn)}
+.st-oss .nb{stroke:color-mix(in srgb,var(--oss) 62%,var(--line))}.st-oss .nbar{fill:var(--oss)}
+.st-ref .nb{stroke:var(--ink3)}.st-ref .nbar{fill:var(--ink3)}
+.st-tai .nb{stroke:color-mix(in srgb,var(--tai) 62%,var(--line))}.st-tai .nbar{fill:var(--tai)}
+.st-nao .nb{stroke:color-mix(in srgb,var(--nao) 62%,var(--line))}.st-nao .nbar{fill:var(--nao)}
+.st-tay .nb{stroke:color-mix(in srgb,var(--tay) 62%,var(--line))}.st-tay .nbar{fill:var(--tay)}
+.st-mieng .nb{stroke:color-mix(in srgb,var(--mieng) 62%,var(--line))}.st-mieng .nbar{fill:var(--mieng)}
+.nt{font:600 13px var(--font);fill:var(--ink);letter-spacing:-.005em}
+.ns{font:400 11px var(--font);fill:var(--ink2)}
+.nr{font:500 10.5px var(--font);fill:var(--ink3)}
+.ctag rect{rx:7.5;stroke-width:1}.ctag text{font:600 9px var(--font);letter-spacing:.05em}
+.ctag.tai rect{fill:color-mix(in srgb,var(--tai) 10%,var(--panel));stroke:var(--tai)}.ctag.tai text{fill:var(--tai)}
+.ctag.nao rect{fill:color-mix(in srgb,var(--nao) 10%,var(--panel));stroke:var(--nao)}.ctag.nao text{fill:var(--nao)}
+.ctag.tay rect{fill:color-mix(in srgb,var(--tay) 10%,var(--panel));stroke:var(--tay)}.ctag.tay text{fill:var(--tay)}
+.ctag.mieng rect{fill:color-mix(in srgb,var(--mieng) 10%,var(--panel));stroke:var(--mieng)}.ctag.mieng text{fill:var(--mieng)}
+.nd{cursor:pointer;outline:none}
+.nd:hover .nb,.nd.sel .nb{stroke-width:2.2}
+.nd:focus-visible .nb{stroke-width:3.2;stroke:var(--ink)}
+.eg{fill:none;stroke:var(--ink3);stroke-width:1.4;stroke-linejoin:round;transition:opacity .15s}
+.eg.dash{stroke-dasharray:6 4}.eg.thick{stroke-width:2.1}
+.eg-exist{stroke:var(--exist)}.eg-ext{stroke:var(--ext)}.eg-new{stroke:var(--new)}.eg-extn{stroke:var(--extn)}
+.eg-tai{stroke:var(--tai)}.eg-nao{stroke:var(--nao)}.eg-tay{stroke:var(--tay)}.eg-mieng{stroke:var(--mieng)}.eg-ink{stroke:var(--ink2)}
+.mk{fill:var(--ink3)}.mk-exist{fill:var(--exist)}.mk-ext{fill:var(--ext)}.mk-new{fill:var(--new)}.mk-extn{fill:var(--extn)}
+.mk-tai{fill:var(--tai)}.mk-nao{fill:var(--nao)}.mk-tay{fill:var(--tay)}.mk-mieng{fill:var(--mieng)}.mk-ink{fill:var(--ink2)}
+.elb rect{fill:var(--panel);stroke:var(--line);stroke-width:1;rx:9}
+.elb text{font:500 11px var(--font);fill:var(--ink2)}
+svg.picking .eg:not(.hl),svg.picking .elb:not(.hl){opacity:.18}
+svg.picking .nd:not(.sel):not(.nb-hl){opacity:.55}
+.sv-txt{font:500 11px var(--font);fill:var(--ink2)}
+.sv-big{font:500 15px var(--serif);fill:var(--ink)}
+/* generic grids / cards */
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}.g5{grid-template-columns:repeat(5,minmax(0,1fr))}.g6{grid-template-columns:repeat(6,minmax(0,1fr))}
+.card{border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:14px 16px}
+.card h4{margin:0 0 6px;font:500 15px var(--serif)}
+.card p{margin:0;color:var(--ink2);font-size:12.5px}
+.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+footer{padding:28px 24px 48px;color:var(--ink3);font-size:12px;border-top:1px solid var(--line)}
+@media (max-width:1100px){.dgrid{grid-template-columns:1fr}.dpanel{position:static}.g4,.g5,.g6{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:1fr 1fr}}
+@media print{.top,.ztool,.zhint{display:none}section.sec{break-inside:avoid;box-shadow:none}}
+/* ===== end shared kit ===== */
+
+/* --- File 2 specific --- */
+.ttl{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:28px;margin:22px 0 14px}
+.ttl .msg{margin-top:6px;font-size:14px}
+.ttl h1{margin:8px 0 0;font-size:27px;line-height:1.25;max-width:1000px}
+.ttl .msg{margin-top:4px}
+.eyebrow{font:600 11px/1 var(--font);letter-spacing:.14em;color:var(--accent);text-transform:uppercase}
+.sot{display:flex;flex-direction:column;gap:6px;align-items:flex-end;padding-top:2px}
+.sot .chip{font-size:12px;border:1px solid var(--line);background:var(--panel);color:var(--ink2);border-radius:999px;padding:6px 12px}
+.sot .chip b{color:var(--exist)}
+.d1 .zvp{min-height:560px}
+.zleg{top:11px;right:250px;pointer-events:auto}.zleg .legend{flex-wrap:nowrap;gap:6px 12px}
+.nm{width:100%;border-collapse:collapse;font-size:12.5px}
+.nm th,.nm td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.nm th{font:700 11px var(--font);letter-spacing:.06em;color:var(--ink2);text-transform:uppercase}
+.nm td:first-child{font-weight:600;white-space:nowrap}
+/* D3 mapping */
+.map{display:grid;grid-template-columns:118px repeat(4,minmax(0,1fr));gap:10px;align-items:stretch}
+.map .hd{font:500 17px var(--serif);padding:10px 2px 8px;border-top:3px solid var(--c);color:var(--ink);display:flex;justify-content:space-between;align-items:baseline}
+.map .hd small{font:500 11px var(--font);color:var(--ink3)}
+.map .rl{display:flex;flex-direction:column;justify-content:center;gap:6px;padding:10px 4px;border-top:1px solid var(--line)}
+.map .rl b{font:500 16px var(--serif)}.map .rl span{font-size:11px;color:var(--ink2)}
+.map .mc{position:relative;border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:10px;display:flex;flex-direction:column;gap:6px}
+.map .mc.arr::after{content:"→";position:absolute;right:-12px;top:50%;transform:translateY(-50%);font:700 15px var(--font);color:var(--ink3);z-index:1}
+.ch{border:0;border-left:3px solid var(--c);border-radius:0;background:transparent;padding:3px 0 3px 10px;font-size:12px;line-height:1.4;color:var(--ink2)}
+.ch b{display:block;font-size:12.5px;color:var(--ink);font-weight:600}
+.ch code{font-size:10.5px;padding:0 4px}
+.ch.dash{border-left-style:dashed}
+.counts{display:flex;gap:8px;flex-wrap:wrap}
+.counts{gap:0}.counts .stat{border-left:1px solid var(--line);padding:0 16px}.counts .stat:first-child{border-left:0}
+.counts .stat b{font:500 28px/1.1 var(--serif);display:block;color:var(--c)}.counts .stat span{font-size:11.5px;color:var(--ink3)}
+/* D4 notes */
+.warn{border-left:3px solid var(--avoid);padding:4px 0 4px 16px;font-size:13.5px;line-height:1.6;color:var(--ink2);margin-top:20px}
+.warn b{color:var(--avoid)}
+/* D5 sequence */
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--panel);padding:3px}
+.seg button{border:0;background:transparent;color:var(--ink2);padding:6px 14px;border-radius:999px;font:500 12.5px var(--font);cursor:pointer}
+.seg button.on{background:var(--accent);color:#fff}
+.seg button:focus-visible{outline:2px solid var(--ext);outline-offset:-2px}
+.lnh rect{fill:var(--panel);stroke:var(--line);stroke-width:1.4}
+.lnh.srv rect{stroke:var(--ext)}.lnh.dev rect{stroke:var(--tay)}.lnh.ext rect{stroke:var(--extn);stroke-dasharray:5 4}.lnh.usr rect{stroke:var(--tai)}
+.lnh .t1{font:700 12px var(--font);fill:var(--ink)}.lnh .t2{font:500 10.5px var(--font);fill:var(--ink2)}
+.lnh.off{opacity:.3}
+.lline{stroke:var(--line);stroke-width:2;stroke-dasharray:4 5}
+.lline.off{opacity:.35}
+.sqa{fill:none;stroke-width:1.8}
+.sql rect{fill:var(--panel);stroke:none;opacity:.94}
+.sql text{font:600 11px var(--font);fill:var(--ink)}
+.sqt rect{rx:8.5;stroke-width:1}.sqt text{font:600 9.5px var(--font);letter-spacing:.04em}
+.sqn{font:700 11px var(--mono);fill:var(--ink3)}
+.sqrow:hover .sqbg{fill:var(--soft)}
+.sqbg{fill:transparent}
+.diffs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:12px}
+.diffs .card b{font-size:13px}
+/* D6 roadmap */
+.rm{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;position:relative;padding-top:8px}
+.rm::before{content:"";position:absolute;left:28px;right:28px;top:30px;height:1px;background:var(--line)}
+.ms{position:relative;border:1px solid var(--line);border-radius:16px;background:var(--panel);padding:46px 16px 16px}
+.ms .no{position:absolute;top:6px;left:14px;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;color:var(--c);background:var(--panel);border:1.5px solid var(--c);font:500 17px var(--serif);box-shadow:0 0 0 5px var(--panel)}
+.ms h3{margin:12px 0 4px;font-size:19px}
+.ms .ob{font-size:12.5px;color:var(--ink2);min-height:36px}
+.ms .lb{font:700 10.5px var(--font);letter-spacing:.08em;color:var(--ink3);text-transform:uppercase;margin:10px 0 4px}
+.ms .demo{border-left:3px solid var(--accent);padding:2px 0 2px 10px;font:400 13.5px/1.5 var(--serif);color:var(--ink)}
+.ms .gate{font-size:12px;color:var(--ink2);margin-top:6px}
+.ms .v3{font:600 10.5px var(--mono);color:var(--ink3);position:absolute;top:18px;right:12px}
+.cc{display:inline-flex;align-items:center;font-size:11.5px;border:1px solid var(--c);border-radius:999px;padding:2px 8px;margin:2px 3px 2px 0;background:color-mix(in srgb,var(--c) 7%,var(--panel));color:var(--ink)}
+.cc.dash{border-style:dashed}
+/* decisions + DoD */
+.ads{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.adr{border:0;border-top:1px solid var(--line);border-radius:0;background:transparent;padding:12px 0;display:grid;grid-template-columns:52px 1fr;gap:10px;align-items:start}
+.adr .id{font:500 12px var(--mono);color:var(--accent);padding:2px 0}
+.adr b{font-size:13px;display:block}.adr span{font-size:12px;color:var(--ink2)}
+.adr .st{margin-top:5px}
+.qa{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.qa .card h4{font:500 15px var(--serif);color:var(--ink)}
+.qa .card p{color:var(--ink2);font-size:13px;margin-bottom:8px}
+.qa .card a{font-size:12px}
+.gold td:nth-child(2){white-space:nowrap}
+.qlist{display:grid;gap:10px;margin-top:4px}.q{display:grid;grid-template-columns:28px 1fr;gap:6px;font-size:13px;color:var(--ink2);line-height:1.5}.q b{color:var(--ink)}.q .gn{margin:1px 0 0}
+pre.spec{margin:10px 0 0;padding:14px 16px;background:var(--soft);border:1px solid var(--line);border-radius:12px;font:11.5px/1.65 var(--mono);color:var(--ink2);overflow:auto;white-space:pre}
+@media (max-width:1100px){.map{grid-template-columns:1fr}.map .mc.arr::after{display:none}.rm,.ads,.qa,.diffs{grid-template-columns:1fr 1fr}.rm::before{display:none}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <div class="brand">AgentOps <b>V2</b> · Cowork</div>
+  <nav aria-label="Mục lục">
+    <a href="#d1">1 · Kiến trúc tổng</a><a href="#d2">2 · Anatomy &amp; Intent</a><a href="#d3">3 · Component map</a>
+    <a href="#d4">4 · Standalone / Managed</a><a href="#d5">5 · Golden use case</a><a href="#real">Ví dụ thật · MBB</a><a href="#d6">6 · Roadmap</a><a href="#dec">Quyết định</a>
+  </nav>
+  <span class="sp"></span>
+  <a class="btn" href="01-cowork-market-research-reference-architecture.html">← File 1 · Research</a>
+  <button class="btn" id="themeBtn" type="button" aria-label="Đổi giao diện sáng/tối"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.5"/><path d="M8 2.5a5.5 5.5 0 0 1 0 11z" class="fill"/></svg></button>
+</div></header>
+
+<main class="wrap">
+<div class="ttl">
+  <div>
+    <div class="eyebrow">File 2/2 · Final architecture · 2026-10-13</div>
+    <h1>AgentOps V2 + Cowork: một Control Plane, não trên server hoặc trên máy, tay chạy ở nơi có dữ liệu</h1>
+    <p class="msg"><b>Thông điệp:</b> giữ nguyên AgentOps (API · Temporal · Keycloak · PG/Redis/MinIO · vLLM) và cắm thêm <b>Edge Gateway + Cowork Local Runtime</b>; Intent chỉ chọn điểm xuất phát, <b>Agent Loop Core</b> tự phối hợp tool, <b>Policy Gate</b> giữ quyền.</p>
+  </div>
+  <div class="sot">
+    <span class="chip" title="docs/agentops-platform-architecture.html (workspace feat-khoipd-kb-policy-chatbot) + sơ đồ 58 thành phần + grep code"><b>SoT đã kiểm</b> · platform-architecture + 58 thành phần + code</span>
+  </div>
+</div>
+
+<!-- ================= DIAGRAM 1 — FINAL UNIFIED ARCHITECTURE ================= -->
+<section class="sec d1" id="d1" style="border-top:0;padding:0 0 40px">
+  <div class="zwrap" data-zoom>
+    <div class="ztool"><button type="button" data-z="out" aria-label="Thu nhỏ">−</button><span class="zpct">100%</span><button type="button" data-z="in" aria-label="Phóng to">+</button><button type="button" data-z="fit" aria-label="Về mặc định"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 6V3h3M10 3h3v3M13 10v3h-3M6 13H3v-3"/></svg></button><button type="button" data-z="full" aria-label="Toàn màn hình"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="3.5" width="11" height="9" rx="1.5"/><path d="M5.5 6.5h5v3h-5z"/></svg></button></div>
+    <div class="zvp"><div class="zst"><svg id="dg1" role="img" aria-label="Diagram 1 — kiến trúc hợp nhất AgentOps V2 + Cowork"></svg></div></div>
+    <div class="zhint zleg"><div class="legend">
+      <span class="lg c-exist"><span class="sw"></span>Đã có</span><span class="lg c-ext"><span class="sw"></span>Mở rộng</span><span class="lg c-new"><span class="sw"></span>Xây mới</span>
+      <span class="lg c-oss"><span class="sw"></span>OSS tích hợp</span><span class="lg c-extn"><span class="sw dash"></span>Bên ngoài / planned</span>
+      <span class="lg"><span class="cap tai">TAI</span><span class="cap nao">NÃO</span><span class="cap tay">TAY</span><span class="cap mieng">MIỆNG</span></span>
+    </div></div>
+    <aside class="dpanel float" id="pn1" aria-live="polite"></aside>
+  </div>
+  <details style="margin-top:12px">
+    <summary style="cursor:pointer;font-weight:600;font-size:13px">Kiểm tên &amp; trách nhiệm theo SoT + code (8 khối yêu cầu)</summary>
+    <table class="nm" style="margin-top:8px">
+      <thead><tr><th>Khối yêu cầu</th><th>Tên thật đã kiểm</th><th>Trách nhiệm</th><th>Nguồn</th><th>Trạng thái</th></tr></thead>
+      <tbody>
+        <tr><td>Portal ui-v2</td><td><code>services/ui-v2</code> · host <code>agentops-v2.test</code></td><td>/overview /workflows /runs /hoi-dap /kb-admin /an-toan-noi-dung /sessions /teams</td><td>SoT §7 · <code>src/App.tsx</code></td><td><span class="pill c-ext">Mở rộng</span></td></tr>
+        <tr><td>AgentOps API</td><td><code>agentops-api</code> · FastAPI <code>services/api</code></td><td>route không prefix /api · BFF /v2 · /kb · /v1/mcp (chỉ <code>tools/list</code>)</td><td>SoT §3 · <code>routes_mcp.py:89</code></td><td><span class="pill c-ext">Mở rộng</span></td></tr>
+        <tr><td>Temporal Worker</td><td><code>agentops-worker</code> (queue <code>agentops-default</code>) + <code>agentops-worker-browser</code> :9333</td><td>RunWorkflow · Schedule · KbIngest · activities · replay</td><td>SoT §8 · <code>worker.py</code></td><td><span class="pill c-ext">Mở rộng</span></td></tr>
+        <tr><td>Edge Gateway</td><td><b>Không có trong SoT.</b> Biên hiện tại = <code>ingress-nginx</code>; Kong planned (ADR-0056). Gateway thiết bị = <code>agentops-edge-gateway</code> trong plan Cowork v3</td><td>đăng ký máy · WSS · dispatcher · proxy LLM company · telemetry</td><td><code>docs/co_work/docs/planning/02</code> D-08 (chờ B duyệt)</td><td><span class="pill c-new">Xây mới</span></td></tr>
+        <tr><td>Keycloak</td><td>realm <code>ho-agentops</code> · RS256/JWKS · claim <code>chain</code> = tenant</td><td>danh tính duy nhất; cần thêm client public <code>agentops-cowork</code> (PKCE)</td><td>SoT §9 · <code>auth.py</code></td><td><span class="pill c-exist">Đã có</span></td></tr>
+        <tr><td>PostgreSQL / Redis / MinIO</td><td>PG 16.4 + pgvector 0.8.2 · Redis (SSE fan-out, cache) · MinIO</td><td>system of record · serving cache (degrade về DB) · artifact</td><td>SoT §8.3 · sơ đồ 58 ô</td><td><span class="pill c-exist">Đã có</span></td></tr>
+        <tr><td>Enterprise LLM</td><td><code>config_llm.py</code> 6 tier (light/standard/heavy/vision/decision/guard) · chart <code>infra/helm/vllm</code> Gemma 4 26B-A4B + E4B</td><td>tự host, chọn bằng config, không auto-failover (ADR-0057)</td><td>code workspace (SoT ghi "4 tier" — đã lệch code)</td><td><span class="pill c-exist">Đã có</span></td></tr>
+        <tr><td>Cowork Local Runtime</td><td><b>Không có trong SoT.</b> Plan v3: Worker Node = Shell (Electron) + Cowork UI (ui-v2 desktop) + Node Runtime <code>services/edge_worker/</code></td><td>thực thi trên máy: browser · desktop · file · MCP cục bộ · Model Router</td><td>plan v3 D-02…D-06 · grep code: chưa có</td><td><span class="pill c-new">Xây mới</span></td></tr>
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<!-- ================= DIAGRAM 2 — AI ANATOMY & INTENT FLOW ================= -->
+<section class="sec" id="d2">
+  <div class="sh"><div><div class="k">Diagram 2 · AI anatomy &amp; intent flow</div>
+    <h2>Tai → hiểu → Intent hint → 6 chiến lược khởi đầu → Agent Loop tự phối hợp tool → Miệng</h2>
+    <p class="msg"><b>Thông điệp:</b> Intent Classifier <b>chỉ chọn điểm xuất phát</b> (chiến lược + shortlist tool + budget + gợi ý nơi chạy). Trong vòng lặp, LLM được <b>tách việc, tìm tool mới, đổi executor, đổi chiến lược, replan</b>; mỗi hành động vẫn qua <b>Policy Gate</b>.</p></div>
+  </div>
+  <div class="zwrap" data-zoom>
+    <div class="ztool"><button type="button" data-z="out" aria-label="Thu nhỏ">−</button><span class="zpct">100%</span><button type="button" data-z="in" aria-label="Phóng to">+</button><button type="button" data-z="fit" aria-label="Về mặc định"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 6V3h3M10 3h3v3M13 10v3h-3M6 13H3v-3"/></svg></button><button type="button" data-z="full" aria-label="Toàn màn hình"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="3.5" width="11" height="9" rx="1.5"/><path d="M5.5 6.5h5v3h-5z"/></svg></button></div>
+    <div class="zvp"><div class="zst"><svg id="dg2" role="img" aria-label="Diagram 2 — giải phẫu AI và luồng intent"></svg></div></div>
+    <div class="zhint">Bấm từng ô để xem code hiện có và phần cần mở rộng</div>
+    <aside class="dpanel float" id="pn2" aria-live="polite"></aside>
+  </div>
+</section>
+
+<!-- ================= DIAGRAM 3 — COMPONENT MAPPING ================= -->
+<section class="sec" id="d3">
+  <div class="sh"><div><div class="k">Diagram 3 · Component mapping</div>
+    <h2>Existing → Extended → New: phần lớn đã chạy, phần mới tập trung ở Tay-trên-máy và Agent Loop</h2>
+    <p class="msg"><b>Thông điệp:</b> mỗi hàng là một năng lực; đọc từ trái sang phải để thấy <b>tái dùng gì → mở rộng ở điểm nào → code thêm gì → lấy OSS/ngoài nào</b>. Path đã grep trong workspace SoT.</p></div>
+    <div class="counts" id="counts"></div>
+  </div>
+  <div class="map">
+    <div></div>
+    <div class="hd" style="--c:var(--exist)">Existing <small>đã chạy · tái dùng</small></div>
+    <div class="hd" style="--c:var(--ext)">Extended <small>mở rộng 1 điểm</small></div>
+    <div class="hd" style="--c:var(--new)">New <small>code thêm</small></div>
+    <div class="hd" style="--c:var(--oss)">OSS · Integrate <small>pin / qua giao thức</small></div>
+
+    <div class="rl"><span class="cap tai">TAI</span><b>Perception</b><span>chat · voice · file · browser · sự kiện</span></div>
+    <div class="mc arr">
+      <div class="ch" style="--c:var(--exist)"><b>Hỏi đáp KB (SSE)</b><code>ui-v2 /hoi-dap · KbChat.tsx</code></div>
+      <div class="ch" style="--c:var(--exist)"><b>Chat trợ lý wizard</b><code>ai/chat_agent.py</code></div>
+      <div class="ch" style="--c:var(--exist)"><b>Upload + đọc Excel/CSV</b><code>_kb_upload.py · csv_io.py · excel_sheets.py</code></div>
+      <div class="ch" style="--c:var(--exist)"><b>Phiên trình duyệt · ghi thao tác</b><code>recording_engine.py · session_vault.py</code></div>
+      <div class="ch" style="--c:var(--exist)"><b>Lịch chạy</b><code>temporal_schedule.py</code></div>
+    </div>
+    <div class="mc arr">
+      <div class="ch" style="--c:var(--ext)"><b>Cowork UI = ui-v2 target desktop</b><code>src/lib/desktop.ts</code> (mới)</div>
+      <div class="ch" style="--c:var(--ext)"><b>Context Engine + năng lực máy</b>grounding thêm Site/App Profile, thư mục được cấp</div>
+    </div>
+    <div class="mc arr">
+      <div class="ch" style="--c:var(--new)"><b>File / thư mục được cấp</b>grants trên Cowork Runtime</div>
+      <div class="ch" style="--c:var(--new)"><b>Ngữ cảnh trình duyệt đang mở</b>DOM rút gọn + a11y</div>
+      <div class="ch" style="--c:var(--new)"><b>Voice (STT)</b>Phase 2</div>
+    </div>
+    <div class="mc">
+      <div class="ch" style="--c:var(--oss)"><b>browser-use 0.13.11</b>DOM serializer (MIT)</div>
+      <div class="ch dash" style="--c:var(--extn)"><b>FPT Chat inbound</b>planned · hiện chỉ gửi đi</div>
+    </div>
+
+    <div class="rl"><span class="cap nao">NÃO</span><b>Intelligence</b><span>intent · plan · context · model · tool</span></div>
+    <div class="mc arr">
+      <div class="ch" style="--c:var(--exist)"><b>T0 intent kNN (KB)</b><code>ai/kb_answer_router.py::route_intent</code></div>
+      <div class="ch" style="--c:var(--exist)"><b>Chat agent tool loop (≤6 lượt)</b><code>chat_agent.py MAX_TOOL_TURNS</code></div>
+      <div class="ch" style="--c:var(--exist)"><b>LLM gateway · 6 tier</b><code>ai/gateway.py · config_llm.py</code></div>
+      <div class="ch" style="--c:var(--exist)"><b>knowledge.search (RRF)</b><code>knowledge/search_tool.py</code></div>
+      <div class="ch" style="--c:var(--exist)"><b>Memory typed</b><code>memory/typed_store.py</code></div>
+      <div class="ch" style="--c:var(--exist)"><b>Job analyzer · composer</b><code>job_analyzer.py · _agent_factory.op_to_agent</code></div>
+    </div>
+    <div class="mc arr">
+      <div class="ch" style="--c:var(--ext)"><b>Intent Classifier + Dynamic Router</b>T0 kNN + T1 <code>ai/llm_decision.py</code> → strategy hint</div>
+      <div class="ch" style="--c:var(--ext)"><b>Capability Registry + tool search</b><code>tools/registry.py</code> (risk_level · delegation_level)</div>
+      <div class="ch" style="--c:var(--ext)"><b>Chat agent dùng registry</b>bỏ <code>CHAT_TOOLS</code> tĩnh</div>
+      <div class="ch" style="--c:var(--ext)"><b>Model Router company · local · byok</b>trên <code>config_llm.py</code></div>
+    </div>
+    <div class="mc arr">
+      <div class="ch" style="--c:var(--new)"><b>Agent Loop Core</b><code>services/runtime/agent_loop/</code> — tổng quát hoá <code>computer_use/</code> (v3)</div>
+      <div class="ch" style="--c:var(--new)"><b>Meta-tool đổi hướng</b>search_capabilities · delegate_to_device · escalate_to_workflow · ask_human</div>
+      <div class="ch" style="--c:var(--new)"><b>Budget + thang replan</b>retry → tool khác → replan → hỏi người → fail-loud</div>
+    </div>
+    <div class="mc">
+      <div class="ch dash" style="--c:var(--extn)"><b>Local LLM trên máy</b>Ollama / LM Studio (openai_compat)</div>
+      <div class="ch dash" style="--c:var(--extn)"><b>BYOK provider</b>tenant opt-in · mặc định OFF</div>
+    </div>
+
+    <div class="rl"><span class="cap tay">TAY</span><b>Execution</b><span>browser · desktop · file · MCP · workflow</span></div>
+    <div class="mc arr">
+      <div class="ch" style="--c:var(--exist)"><b>Replay xác định + Chromium pool</b><code>replay_engine.py · worker-browser :9333</code></div>
+      <div class="ch" style="--c:var(--exist)"><b>Interpreter · 12 op kind</b><code>specs/ · operations/</code></div>
+      <div class="ch" style="--c:var(--exist)"><b>Báo cáo → MinIO</b><code>report_delivery/</code></div>
+      <div class="ch" style="--c:var(--exist)"><b>HTTP ra ngoài một cổng</b><code>tools/http_gateway.py</code></div>
+      <div class="ch" style="--c:var(--exist)"><b>Activities fetch</b><code>activities/api_fetch.py · document_fetch.py</code></div>
+    </div>
+    <div class="mc arr">
+      <div class="ch" style="--c:var(--ext)"><b>/v1/mcp + tools/call</b><code>routes_mcp.py</code> (ADR-0053)</div>
+      <div class="ch" style="--c:var(--ext)"><b>Placement seam server | device</b><code>executor.py</code> + <code>edge/placement.py</code> (mới)</div>
+      <div class="ch" style="--c:var(--ext)"><b>RunWorkflow chờ edge job</b>signal <code>edge_job_update</code></div>
+      <div class="ch" style="--c:var(--ext)"><b>Bước agentic chạy trong worker</b>Agent Loop host bền</div>
+    </div>
+    <div class="mc arr">
+      <div class="ch" style="--c:var(--new)"><b>Cowork Local Runtime</b><code>services/edge_worker/</code> browser · desktop · file · MCP</div>
+      <div class="ch" style="--c:var(--new)"><b>MCP Client Hub</b>gọi MCP server doanh nghiệp qua Kong</div>
+      <div class="ch" style="--c:var(--new)"><b>Skills registry</b>gói hướng dẫn + tool, nạp theo việc</div>
+    </div>
+    <div class="mc">
+      <div class="ch" style="--c:var(--oss)"><b>@ui-tars/sdk 1.2.3</b>Operator + action-parser (Apache-2.0)</div>
+      <div class="ch" style="--c:var(--oss)"><b>mcp 2.3.0</b>Python SDK server + client (MIT)</div>
+      <div class="ch" style="--c:var(--oss)"><b>UFO (git pin)</b>UIA + Office COM · Phase 2</div>
+      <div class="ch dash" style="--c:var(--extn)"><b>SSC · HRM · BI</b>MCP server sau Kong</div>
+    </div>
+
+    <div class="rl"><span class="cap mieng">MIỆNG</span><b>Communication</b><span>stream · duyệt · kết quả · thông báo</span></div>
+    <div class="mc arr">
+      <div class="ch" style="--c:var(--exist)"><b>SSE tiến độ run</b><code>sse_bus.py · /runs/{id}/events</code></div>
+      <div class="ch" style="--c:var(--exist)"><b>Duyệt · việc của người</b><code>approvals · human_inbox.py</code></div>
+      <div class="ch" style="--c:var(--exist)"><b>Artifact</b>bảng <code>artifacts</code> + MinIO</div>
+      <div class="ch" style="--c:var(--exist)"><b>Giọng "Tím" + tone lint</b><code>kb_persona · kb_tone</code></div>
+      <div class="ch" style="--c:var(--exist)"><b>FPT Chat gửi đi</b><code>integrations/fptchat/client.py</code></div>
+    </div>
+    <div class="mc arr">
+      <div class="ch" style="--c:var(--ext)"><b>Sự kiện agent chung schema</b><code>agent_step_*</code> cho web + desktop</div>
+      <div class="ch" style="--c:var(--ext)"><b>Duyệt trong Cowork overlay</b>cùng task <code>confirmation</code></div>
+      <div class="ch" style="--c:var(--ext)"><b>SSE ticket</b>theo <code>_ws_ticket.py</code></div>
+    </div>
+    <div class="mc arr">
+      <div class="ch" style="--c:var(--new)"><b>Thông báo OS</b>xong việc · cần xác nhận</div>
+      <div class="ch" style="--c:var(--new)"><b>Live view</b>Dừng · Tạm dừng · Tôi tự làm</div>
+      <div class="ch" style="--c:var(--new)"><b>Voice (TTS)</b>Phase 2</div>
+    </div>
+    <div class="mc"><div class="ch dash" style="--c:var(--line)"><b>—</b>không cần OSS</div></div>
+
+    <div class="rl"><span class="lic">NỀN TẢNG</span><b>Policy · Identity · Audit · Orchestration</b></div>
+    <div class="mc arr">
+      <div class="ch" style="--c:var(--exist)"><b>Keycloak + tenant_of</b><code>auth.py</code></div>
+      <div class="ch" style="--c:var(--exist)"><b>Policy DSL · delegation L0–L5</b><code>policy_dsl.py · delegation_hint.py</code></div>
+      <div class="ch" style="--c:var(--exist)"><b>Guard · redactor</b><code>ai/guard/ · ai/redactor.py</code></div>
+      <div class="ch" style="--c:var(--exist)"><b>Audit · OTel</b><code>ai_invocations · observability.py</code></div>
+      <div class="ch" style="--c:var(--exist)"><b>Temporal + PG/Redis/MinIO</b><code>workflow.py · store.py · s3_client.py</code></div>
+    </div>
+    <div class="mc arr">
+      <div class="ch" style="--c:var(--ext)"><b>Gate theo trần effect</b><code>requires_human_approval(type_id)</code> → thêm <code>max_effect</code> (v3 D-20)</div>
+      <div class="ch" style="--c:var(--ext)"><b>Guard trên bề mặt Cowork</b><code>CONVERSATIONAL_SURFACES</code></div>
+      <div class="ch" style="--c:var(--ext)"><b>Audit telemetry local/byok</b>về <code>ai_invocations</code></div>
+      <div class="ch" style="--c:var(--ext)"><b>Client Keycloak agentops-cowork</b>PKCE · offline token</div>
+    </div>
+    <div class="mc arr">
+      <div class="ch" style="--c:var(--new)"><b>Edge Gateway</b><code>agentops-edge-gateway</code> ≥2 replica</div>
+      <div class="ch" style="--c:var(--new)"><b>Sổ thiết bị + thu hồi</b><code>edge_devices</code></div>
+      <div class="ch" style="--c:var(--new)"><b>Local Policy Enforcer</b>grants · allowlist · trần effect</div>
+    </div>
+    <div class="mc">
+      <div class="ch dash" style="--c:var(--extn)"><b>Kong</b>ADR-0056 · plugin xác thực chưa kiểm</div>
+      <div class="ch dash" style="--c:var(--extn)"><b>SSO Inside</b>ADR-0052 · chưa code</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= DIAGRAM 4 — STANDALONE VS MANAGED ================= -->
+<section class="sec" id="d4">
+  <div class="sh"><div><div class="k">Diagram 4 · Standalone vs Managed · Standalone = Phase 2, cần ADR</div>
+    <h2>Một binary Cowork, một core thực thi — chế độ chỉ đổi nơi đặt Não, nguồn chính sách, LLM và audit</h2>
+    <p class="msg"><b>Thông điệp:</b> 7 khối ở giữa là <b>cùng một code</b> cho cả hai chế độ. Standalone = máy tự đủ (cá nhân, việc ngắn). Managed = máy là <b>tay</b> của AgentOps; liên kết máy bằng PKCE là chuyển chế độ, <b>không cài lại</b>.</p></div>
+  </div>
+  <div class="zwrap" data-zoom>
+    <div class="ztool"><button type="button" data-z="out" aria-label="Thu nhỏ">−</button><span class="zpct">100%</span><button type="button" data-z="in" aria-label="Phóng to">+</button><button type="button" data-z="fit" aria-label="Về mặc định"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 6V3h3M10 3h3v3M13 10v3h-3M6 13H3v-3"/></svg></button><button type="button" data-z="full" aria-label="Toàn màn hình"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="3.5" width="11" height="9" rx="1.5"/><path d="M5.5 6.5h5v3h-5z"/></svg></button></div>
+    <div class="zvp"><div class="zst"><svg id="dg4" role="img" aria-label="Diagram 4 — so sánh Standalone và Managed"></svg></div></div>
+    <aside class="dpanel float" id="pn4" aria-live="polite"></aside>
+  </div>
+  <div class="warn"><b>Cần ADR trước khi build Standalone (AD-11):</b> plan Cowork v3 chưa có chế độ này và đang chốt D-18 (mọi văn bản vào/ra qua guard server) + D-24 (không giữ state bền trên máy). Standalone lệch cả hai → đề xuất: policy pack ký sẵn + guard model cục bộ (Gemma 4 E4B qua Ollama) + journal cục bộ; hành động <code>external</code> luôn xác nhận từng lần; không có workflow lịch/bền. B quyết.</div>
+</section>
+
+<!-- ================= DIAGRAM 5 — GOLDEN USE CASE ================= -->
+<section class="sec" id="d5">
+  <div class="sh"><div><div class="k">Diagram 5 · Golden use case</div>
+    <h2>"Đọc Excel → Phân tích → Tra cứu → Tạo ticket SSC qua MCP → Trả kết quả"</h2>
+    <p class="msg"><b>Yêu cầu mẫu:</b> "Đọc <code>doanh-thu-T9.xlsx</code>, tìm chi nhánh chênh lệch &gt; 5%, tra quy định xử lý, tạo ticket SSC cho từng chi nhánh." — <b>một yêu cầu, ba ý định, hai nơi chạy, một lần duyệt</b>.</p></div>
+    <div class="seg" role="group" aria-label="Chọn chế độ"><button type="button" class="on" data-mode="m">Managed · AgentOps</button><button type="button" data-mode="s">Standalone · Phase 2</button></div>
+  </div>
+  <div class="zwrap" data-zoom>
+    <div class="ztool"><button type="button" data-z="out" aria-label="Thu nhỏ">−</button><span class="zpct">100%</span><button type="button" data-z="in" aria-label="Phóng to">+</button><button type="button" data-z="fit" aria-label="Về mặc định"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 6V3h3M10 3h3v3M13 10v3h-3M6 13H3v-3"/></svg></button><button type="button" data-z="full" aria-label="Toàn màn hình"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="3.5" width="11" height="9" rx="1.5"/><path d="M5.5 6.5h5v3h-5z"/></svg></button></div>
+    <div class="zvp"><div class="zst"><svg id="dg5" role="img" aria-label="Diagram 5 — sequence golden use case"></svg></div></div>
+  </div>
+  <div class="diffs">
+    <div class="card" style="border-top:3px solid var(--nao)"><b>Intent + plan</b><p><b>Managed:</b> T0/T1 trên server → chiến lược "Phức hợp" (file máy + KB + hành động). <b>Standalone:</b> cùng core, LLM cục bộ.</p></div>
+    <div class="card" style="border-top:3px solid var(--tay)"><b>Thực thi</b><p><b>Managed:</b> đọc file trên máy, phân tích bằng op xác định trên server (không LLM). <b>Standalone:</b> đọc + phân tích trên máy.</p></div>
+    <div class="card" style="border-top:3px solid var(--mieng)"><b>Duyệt + MCP</b><p>Cả hai: form typed → validate xác định → xem trước → xác nhận → <code>tools/call</code> (ADR-0053). <b>Managed</b> đi Kong bằng danh tính Keycloak; <b>Standalone</b> bằng token MCP cá nhân.</p></div>
+    <div class="card" style="border-top:3px solid var(--new)"><b>Giá trị demo</b><p>một câu lệnh thay chuỗi thao tác tay qua Excel → KB → SSC; 0 ticket ghi khi chưa duyệt; mọi bước có audit; "Lưu thành quy trình" → lần sau chạy theo lịch trên Temporal.</p></div>
+  </div>
+</section>
+
+<!-- ================= REAL USE CASE — AF · ĐỐI SOÁT MBB ================= -->
+<section class="sec" id="real">
+  <div class="sh"><div><div class="k">Ví dụ thực tế · AF — Đối soát MBB (sổ phụ 25/09)</div>
+    <h2>Một yêu cầu thật của AF chạy trên kiến trúc hiện có — LLM chỉ dựng quy trình, lúc chạy là op xác định, không LLM</h2>
+    <p class="msg"><b>Đầu vào thật:</b> 1 trang intent + 2 file Excel (giao dịch CT · sao kê MB) + file kết quả mẫu của AF. <b>Kết quả đo:</b> op-chain sinh từ intent khớp file mẫu <b>24/24 dòng chênh lệch</b> trên 7/8 cột, và phát hiện <b>4 điểm file mẫu lệch intent</b> — báo ra, không tự đoán.</p></div>
+    <div class="counts" id="realCounts">
+      <div class="stat" style="--c:var(--tai)"><b>941 · 955</b><span>dòng CT · sao kê</span></div>
+      <div class="stat" style="--c:var(--nao)"><b>970</b><span>khoá sau đối soát</span></div>
+      <div class="stat" style="--c:var(--mieng)"><b>24</b><span>dòng cần xử lý</span></div>
+      <div class="stat" style="--c:var(--exist)"><b>24/24</b><span>dòng khớp · 7/8 cột</span></div>
+    </div>
+  </div>
+  <div class="zwrap" data-zoom>
+    <div class="ztool"><button type="button" data-z="out" aria-label="Thu nhỏ">−</button><span class="zpct">100%</span><button type="button" data-z="in" aria-label="Phóng to">+</button><button type="button" data-z="fit" aria-label="Về mặc định"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 6V3h3M10 3h3v3M13 10v3h-3M6 13H3v-3"/></svg></button><button type="button" data-z="full" aria-label="Toàn màn hình"><svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="3.5" width="11" height="9" rx="1.5"/><path d="M5.5 6.5h5v3h-5z"/></svg></button></div>
+    <div class="zvp"><div class="zst"><svg id="dgReal" role="img" aria-label="Đối soát MBB — luồng dựng và luồng chạy trên AgentOps"></svg></div></div>
+    <div class="zhint">Số trên mũi tên = số khoá/dòng đo trên dữ liệu thật 25/09 · bấm ô để xem tham số và code path</div>
+    <aside class="dpanel float" id="pnReal" aria-live="polite"></aside>
+  </div>
+
+  <div class="grid g2" style="margin-top:18px">
+    <div class="card">
+      <h4>Golden-gate: so từng cột với file kết quả mẫu của AF</h4>
+      <table class="nm gold">
+        <thead><tr><th>Cột</th><th>Khớp</th><th>Ghi chú</th></tr></thead>
+        <tbody>
+          <tr><td>KEY</td><td><span class="pill c-exist">24/24</span></td><td>BankTransactionId · BÚT TOÁN (dạng FT + 14 số)</td></tr>
+          <tr><td>CT_AMOUNT · SP_AMOUNT</td><td><span class="pill c-exist">24/24</span></td><td>sau khi Σ theo KEY_ID</td></tr>
+          <tr><td>CHENH_LECH</td><td><span class="pill c-exist">24/24</span></td><td>SP − CT; Σ chênh lệch = Σ SP − Σ CT</td></tr>
+          <tr><td>NGAY_CHUNG_TU · NOI_DUNG · DocNoRSA</td><td><span class="pill c-exist">24/24</span></td><td>lấy theo đúng nguồn của dòng</td></tr>
+          <tr><td>KET_QUA</td><td><span class="pill c-avoid">6/24</span></td><td>6 "Báo có" khớp · 18 dòng âm: file mẫu là <code>#N/A</code></td></tr>
+        </tbody>
+      </table>
+      <p class="note" style="margin-top:8px">Đo bằng script tạm trên dữ liệu thật (không lưu, chỉ in số đếm). Không đưa giá trị giao dịch vào tài liệu này.</p>
+    </div>
+    <div class="card">
+      <h4>4 câu hỏi cho nghiệp vụ — harness báo lệch thay vì đoán</h4>
+      <div class="qlist">
+        <div class="q"><span class="gn">1</span><div><b>File mẫu giữ 946 dòng chênh lệch 0</b> (KET_QUA "OK"); intent ghi "loại bỏ". Giữ hay bỏ?</div></div>
+        <div class="q"><span class="gn">2</span><div><b>18 dòng âm có KET_QUA = #N/A</b> trong file mẫu (lỗi công thức); intent là "HT âm".</div></div>
+        <div class="q"><span class="gn">3</span><div><b>File mẫu 8 cột, intent 9 cột</b> — thiếu cột "Note check tay".</div></div>
+        <div class="q"><span class="gn">4</span><div><b>31 bút toán sao kê chỉ có PHÁT SINH NỢ</b> (tiền ra) bị loại vì chỉ so PHÁT SINH CÓ. Đúng phạm vi?</div></div>
+      </div>
+      <p class="note" style="margin-top:8px">Trả lời ở form Đặc tả của từng agent (sửa tham số op), không sửa code. Golden-gate chạy lại để chốt.</p>
+    </div>
+  </div>
+
+  <div class="grid g4" style="margin-top:14px">
+    <div class="card"><h4>Dữ liệu "bẩn" xử lý tổng quát</h4><p>Bảng sao kê bắt đầu dòng 7, 4.782 ô gộp · số tiền dạng text "1,234" · 2 dòng tổng cuối · 3 dòng Dư đầu/cuối kỳ không có khoá.</p></div>
+    <div class="card"><h4>Nhận file theo cột, không theo tên</h4><p>File tên "bravo SP" thực chất là sao kê MB (có cột BÚT TOÁN, PHÁT SINH CÓ). Context grounding dựa vào schema.</p></div>
+    <div class="card"><h4>Silent-wrong bị chặn</h4><p>5 khoá BankTransactionId trùng. Nối thẳng không gộp → 34 dòng lệch (10 dòng giả) và tổng không khớp. Guard đã có trong code.</p></div>
+    <div class="card"><h4>Governance thật</h4><p>Team có archetype transform/report = L3 (đã kiểm <code>get_delegation_level</code>) → kích hoạt cần A duyệt + RAI checklist. Không ghi ra hệ thống ngoài.</p></div>
+  </div>
+
+  <details style="margin-top:14px">
+    <summary style="cursor:pointer;font-weight:600;font-size:13px">Xem op-chain sinh từ intent (rút gọn, đúng schema <code>operation_kinds.schema.json</code>)</summary>
+<pre class="spec">ct  = fetch     {source: upload}                                                  # Nạp giao dịch CT · form_upload L0
+ct  = transform {rules: [drop_rows BankTransactionId rỗng,
+                         rename {BankTransactionId: KEY_ID, DebitAmount: AMOUNT}]}
+ct  = aggregate {group_by: [KEY_ID], aggregations: [{field: AMOUNT, func: sum, as: AMOUNT},
+                 {field: DocDate, func: first, as: NGAY}, {field: Description, func: first, as: NOI_DUNG},
+                 {field: DocNoRSA, func: first, as: DocNoRSA}]}                       # 5 khoá trùng → gộp
+mb  = fetch     {source: upload, sheet: "Thông tin giao dịch"}                      # header tự dò: dòng 7
+mb  = transform {rules: [drop_rows "BÚT TOÁN" rỗng, cast "PHÁT SINH CÓ" → number,
+                         rename {"BÚT TOÁN": KEY_ID, "PHÁT SINH CÓ": AMOUNT,
+                                 "NGÀY HẠCH TOÁN": NGAY, "NỘI DUNG": NOI_DUNG}]}
+mb  = aggregate {group_by: [KEY_ID], aggregations: [{field: AMOUNT, func: sum, as: AMOUNT}, …]}
+rec = reconcile {left_ref: ct, right_ref: mb, key: [KEY_ID],
+                 compare_fields: [AMOUNT], tolerance: 0}                              # outer · L2 · _left/_right
+out = transform {rules: [rename {AMOUNT_left: CT_AMOUNT, AMOUNT_right: SP_AMOUNT}, fill … = 0,
+                         derive CHENH_LECH = SP_AMOUNT − CT_AMOUNT, drop_rows CHENH_LECH == 0,
+                         derive KET_QUA = CHENH_LECH &lt; 0 ? "HT âm" : "Báo có"]}
+rpt = report    {format: xlsx, columns: [KEY, CT_AMOUNT, SP_AMOUNT, CHENH_LECH, KET_QUA,
+                 NGAY_CHUNG_TU, NOI_DUNG, DocNoRSA, "Note check tay"]}                  # L3</pre>
+  </details>
+</section>
+
+<!-- ================= DIAGRAM 6 — ROADMAP ================= -->
+<section class="sec" id="d6">
+  <div class="sh"><div><div class="k">Diagram 6 · Implementation roadmap</div>
+    <h2>5 mốc — mỗi mốc một demo chạy thật, merge sau flag, có cổng đo bằng lệnh</h2>
+    <p class="msg"><b>Thông điệp:</b> nền (registry + MCP call + loop) đi trước Cowork; <b>Golden POC ở M2</b> là điểm chứng minh giá trị; hardening theo các stage production của plan v3. Mã <code>≈ v3 S·n</code> = stage gần tương ứng trong <code>05-implementation-plan.md</code>. Khác plan v3: M0 thêm Agent Loop Core + <code>tools/call</code> (cần ADR AD-05/AD-10); M2 đưa demo lên trước Mốc B (S12) vì bước ghi SSC đi qua MCP phía server theo ADR-0053, không cần lane agentic trên máy.</p></div>
+  </div>
+  <div class="rm">
+    <div class="ms"><span class="no" style="--c:var(--exist)">M0</span><span class="v3">≈ v3 S0–S2</span><h3>Foundation</h3>
+      <div class="ob">Não tổng quát trên server, chưa cần máy.</div>
+      <div class="lb">Component</div>
+      <span class="cc" style="--c:var(--new)">Agent Loop Core</span><span class="cc" style="--c:var(--ext)">Capability Registry</span><span class="cc" style="--c:var(--ext)">/v1/mcp tools/call</span><span class="cc" style="--c:var(--ext)">Intent T0+T1</span><span class="cc" style="--c:var(--new)">Sổ thiết bị</span><span class="cc" style="--c:var(--ext)">client agentops-cowork</span>
+      <div class="lb">Demo</div><div class="demo">Chat web gọi tool qua registry; Kiro gọi <code>tools/call</code>; tool lỗi → agent tự replan.</div>
+      <div class="gate">Cổng: golden KB không tụt · contract test registry ↔ MCP · ADR AD-05/AD-11.</div></div>
+    <div class="ms"><span class="no" style="--c:var(--ext)">M1</span><span class="v3">≈ v3 S3–S6</span><h3>Cowork Runtime</h3>
+      <div class="ob">Máy Win + mac thành "tay" an toàn của server.</div>
+      <div class="lb">Component</div>
+      <span class="cc" style="--c:var(--new)">Edge Gateway HA</span><span class="cc" style="--c:var(--new)">Shell Electron</span><span class="cc" style="--c:var(--new)">Node Runtime</span><span class="cc" style="--c:var(--new)">Local Policy</span><span class="cc" style="--c:var(--ext)">replay_engine trên máy</span>
+      <div class="lb">Demo</div><div class="demo">Liên kết máy bằng PKCE; job đọc Excel trong thư mục được cấp → MinIO; rút mạng → nối lại không mất sự kiện.</div>
+      <div class="gate">Cổng: thu hồi máy có hiệu lực ngay · reconnect · kill 1 pod gateway không mất job.</div></div>
+    <div class="ms"><span class="no" style="--c:var(--new)">M2</span><span class="v3">≈ v3 S7–S9</span><h3>Golden POC</h3>
+      <div class="ob">Chứng minh giá trị end-to-end bằng một use case.</div>
+      <div class="lb">Component</div>
+      <span class="cc" style="--c:var(--new)">MCP Client Hub</span><span class="cc dash" style="--c:var(--extn)">SSC MCP (mock → thật)</span><span class="cc" style="--c:var(--ext)">placement seam</span><span class="cc" style="--c:var(--ext)">duyệt overlay</span><span class="cc" style="--c:var(--oss)">browser-use · mcp</span>
+      <div class="lb">Demo</div><div class="demo">Excel → phân tích → KB → ticket SSC có duyệt → kết quả, ở Managed mode.</div>
+      <div class="gate">Cổng: golden N/N · 0 ghi ngoài khi chưa duyệt · audit đủ từng bước.</div></div>
+    <div class="ms"><span class="no" style="--c:var(--new)">M3</span><span class="v3">≈ v3 S10–S11</span><h3>AgentOps Integration</h3>
+      <div class="ob">Việc nhanh thành quy trình bền của AgentOps.</div>
+      <div class="lb">Component</div>
+      <span class="cc" style="--c:var(--ext)">promote → workflow</span><span class="cc" style="--c:var(--ext)">Portal "Máy của tôi"</span><span class="cc" style="--c:var(--ext)">Model Router 3 mode</span><span class="cc" style="--c:var(--oss)">@ui-tars/sdk</span><span class="cc" style="--c:var(--ext)">telemetry audit</span>
+      <div class="lb">Demo</div><div class="demo">"Lưu thành quy trình" → chạy theo lịch Temporal: bước file trên máy, bước KB + ticket trên server.</div>
+      <div class="gate">Cổng: CASAN ≥ 3.5 · RAI checklist cho bước L3 · guard R-7 đạt.</div></div>
+    <div class="ms"><span class="no" style="--c:var(--ink)">M4</span><span class="v3">≈ v3 S12–S14</span><h3>Enterprise Hardening</h3>
+      <div class="ob">Đủ điều kiện pilot → GA trong FRT.</div>
+      <div class="lb">Component</div>
+      <span class="cc" style="--c:var(--new)">ký số · MDM</span><span class="cc" style="--c:var(--ext)">SLO · alert</span><span class="cc" style="--c:var(--ext)">pentest · DPIA</span><span class="cc dash" style="--c:var(--extn)">Kong · SSO Inside</span><span class="cc" style="--c:var(--oss)">UFO (Win, P2)</span><span class="cc" style="--c:var(--new)">Standalone (sau ADR AD-11)</span>
+      <div class="lb">Demo</div><div class="demo">Pilot nhóm: tải 2.000 kết nối / 2 pod, chaos (kill pod · Redis · mất mạng), thu hồi máy mất.</div>
+      <div class="gate">Cổng: tiêu chí GA (plan v3 08 §6) · scan bảo mật CLEAN.</div></div>
+  </div>
+</section>
+
+<!-- ================= DECISIONS ================= -->
+<section class="sec" id="dec">
+  <div class="sh"><div><div class="k">Quyết định kiến trúc</div>
+    <h2>12 quyết định — cùng mã với File 1; 3 cái cần ADR mới</h2></div>
+    <div class="legend"><span class="lg c-exist"><span class="sw"></span>khớp plan/ADR hiện có</span><span class="lg c-ext"><span class="sw"></span>mở rộng ADR hiện có</span><span class="lg c-new"><span class="sw"></span>mới · cần ADR</span></div>
+  </div>
+  <div class="ads">
+    <div class="adr"><span class="id">AD-01</span><div><b>Temporal là orchestrator bền duy nhất</b><span>không thêm engine workflow thứ 2</span><div class="st"><span class="pill c-exist">khớp v3 D-01/D-09</span></div></div></div>
+    <div class="adr"><span class="id">AD-02</span><div><b>Intent = gợi ý chiến lược</b><span>T0 kNN + T1 decision; LLM được đổi hướng</span><div class="st"><span class="pill c-ext">mở rộng ADR-0048/0049</span></div></div></div>
+    <div class="adr"><span class="id">AD-03</span><div><b>Capability ≠ Permission</b><span>Policy Gate theo effect + L0–L5 + HITL</span><div class="st"><span class="pill c-exist">khớp ADR-0053 · v3 D-12/13/20</span></div></div></div>
+    <div class="adr"><span class="id">AD-04</span><div><b>Một Capability Registry</b><span>tool + MCP + thiết bị + skill, tìm động</span><div class="st"><span class="pill c-ext">mở rộng ADR-0053</span></div></div></div>
+    <div class="adr"><span class="id">AD-05</span><div><b>Một Agent Loop Core</b><span>chạy ở API (việc ngắn) · Temporal activity · Cowork Runtime</span><div class="st"><span class="pill c-new">mới · tổng quát v3 D-10</span></div></div></div>
+    <div class="adr"><span class="id">AD-06</span><div><b>Budget + thang replan</b><span>retry → tool khác → replan → hỏi người → fail-loud</span><div class="st"><span class="pill c-exist">khớp v3 02 §8.3 budget</span></div></div></div>
+    <div class="adr"><span class="id">AD-07</span><div><b>Model Router company/local/byok</b><span>không auto-failover ra ngoài</span><div class="st"><span class="pill c-exist">khớp ADR-0057 · v3 D-15/16</span></div></div></div>
+    <div class="adr"><span class="id">AD-08</span><div><b>Edge Gateway outbound</b><span>máy mở WSS ra; server không vào máy</span><div class="st"><span class="pill c-exist">khớp v3 D-08</span></div></div></div>
+    <div class="adr"><span class="id">AD-09</span><div><b>Placement theo bước</b><span><code>server | device</code>, chờ bằng signal</span><div class="st"><span class="pill c-exist">khớp v3 D-09</span></div></div></div>
+    <div class="adr"><span class="id">AD-10</span><div><b>MCP hai chiều</b><span>server <code>tools/call</code> + Client Hub qua Kong</span><div class="st"><span class="pill c-ext">mở rộng ADR-0053/0056</span></div></div></div>
+    <div class="adr"><span class="id">AD-11</span><div><b>Standalone &amp; Managed cùng binary</b><span>khác nguồn policy · LLM · audit · Standalone = Phase 2, cần ADR</span><div class="st"><span class="pill c-new">mới · lệch v3 D-18/D-24</span></div></div></div>
+    <div class="adr"><span class="id">AD-12</span><div><b>Dạy một lần, chạy xác định</b><span>promote trace agentic → replay</span><div class="st"><span class="pill c-exist">khớp v3 D-11</span></div></div></div>
+  </div>
+</section>
+
+<!-- ================= DEFINITION OF DONE ================= -->
+<section class="sec" id="dod">
+  <div class="sh"><div><div class="k">Definition of done</div><h2>8 câu hỏi — trả lời ở đâu</h2></div></div>
+  <div class="qa">
+    <div class="card"><h4>Thị trường mạnh ở năng lực nào?</h4><p>Cowork desktop: Não · engine OSS: Tay · RPA/workflow: độ bền + kết nối.</p><a href="01-cowork-market-research-reference-architecture.html#viewB">File 1 · View B</a></div>
+    <div class="card"><h4>AgentOps kế thừa gì?</h4><p>12 pattern → 12 quyết định; Build 4 · Reuse AgentOps · Reuse OSS (MIT/Apache) · Integrate.</p><a href="01-cowork-market-research-reference-architecture.html#viewD">File 1 · View D</a></div>
+    <div class="card"><h4>Não, Tai, Tay, Miệng ở đâu?</h4><p>Tai: UI + Context · Não: server (và core trên máy) · Tay: worker + Cowork Runtime + MCP Hub · Miệng: SSE + duyệt + artifact.</p><a href="#d1">Diagram 1</a> · <a href="#d2">Diagram 2</a></div>
+    <div class="card"><h4>Intent Classifier định tuyến thế nào?</h4><p>T0 kNN (không LLM) → T1 decision model khi mơ hồ → strategy hint + shortlist tool + budget + gợi ý nơi chạy.</p><a href="#d2">Diagram 2</a></div>
+    <div class="card"><h4>LLM tự chọn tool và replan ra sao?</h4><p>Agent Loop Core: search_capabilities, delegate_to_device, escalate_to_workflow, ask_human; thang replan; mọi hành động qua Policy Gate.</p><a href="#d2">Diagram 2</a></div>
+    <div class="card"><h4>Cowork cắm vào AgentOps ở đâu?</h4><p>Edge Gateway (WSS ra) + Keycloak PKCE + placement seam trong RunWorkflow + Model Router company qua gateway.</p><a href="#d1">Diagram 1</a> · <a href="#d4">Diagram 4</a></div>
+    <div class="card"><h4>Cái gì có, cái gì xây thêm?</h4><p>Đếm theo trạng thái ở đầu Diagram 3; phần mới tập trung ở Tay-trên-máy, Agent Loop, Edge Gateway, MCP Hub.</p><a href="#d3">Diagram 3</a></div>
+    <div class="card"><h4>Demo đầu tiên chứng minh gì?</h4><p>Một yêu cầu → 3 ý định → 2 nơi chạy → 1 lần duyệt → ticket SSC thật + audit (Managed); Standalone dùng lại cùng core ở Phase 2.</p><a href="#d5">Diagram 5</a> · <a href="#d6">M2</a></div>
+  </div>
+  <p class="note" style="margin-top:12px">Giới hạn đã biết: Edge Gateway, Cowork Local Runtime, Agent Loop Core, MCP Client Hub chưa có code (plan v3 chờ B duyệt). <code>ai/guard/</code> có trong workspace SoT, chưa có trên <code>main</code>. Kong plugin xác thực chưa kiểm (ADR-0056). Sơ đồ SoT ghi LLM "4 tier" và decision tier "chưa có code" — code workspace đã có 6 tier và <code>ai/llm_decision.py</code>; SoT cần cập nhật.</p>
+</section>
+</main>
+<footer class="wrap">AgentOps V2 · Cowork — File 2/2 · 2026-10-13 · màu, tên và mã AD dùng chung với File 1 · không có implementation code trong tài liệu này.</footer>
+<noscript><p class="wrap note">Sơ đồ được vẽ bằng JavaScript nội tuyến (không CDN). Bật JavaScript để xem sơ đồ.</p></noscript>
+<script>
+/* ===== AgentOps V2 diagram kit (shared by 01 + 02 — keep identical) ===== */
+const AO=(function(){
+  const NS='http://www.w3.org/2000/svg';
+  const ST={exist:'Đã có',ext:'Mở rộng',new:'Xây mới',extn:'Bên ngoài',oss:'OSS tích hợp',ref:'Pattern',tai:'Tai',nao:'Não',tay:'Tay',mieng:'Miệng'};
+  const STC={exist:'c-exist',ext:'c-ext',new:'c-new',extn:'c-extn',oss:'c-oss',ref:'',tai:'c-tai',nao:'c-nao',tay:'c-tay',mieng:'c-mieng'};
+  const CAP={tai:'TAI',nao:'NÃO',tay:'TAY',mieng:'MIỆNG'};
+  const COLORS=['ink','exist','ext','new','extn','oss','tai','nao','tay','mieng'];
+  function el(tag,attrs,parent){const e=document.createElementNS(NS,tag);if(attrs)for(const k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e;}
+  function txt(parent,x,y,cls,s,anchor){const t=el('text',{x:x,y:y},parent);if(cls)t.setAttribute('class',cls);if(anchor)t.setAttribute('text-anchor',anchor);t.textContent=s;return t;}
+  function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+  function anchor(n,side,f){switch(side){case 'l':return[n.x,n.y+n.h*f];case 'r':return[n.x+n.w,n.y+n.h*f];case 't':return[n.x+n.w*f,n.y];default:return[n.x+n.w*f,n.y+n.h];}}
+  function end(spec,nodes){
+    if(Array.isArray(spec))return{p:spec,side:null,id:null};
+    const m=/^([\w-]+)\.([lrtb])(?:@([\d.]+))?$/.exec(spec);
+    if(!m||!nodes[m[1]])throw new Error('bad edge end '+spec);
+    return{p:anchor(nodes[m[1]],m[2],m[3]?+m[3]:.5),side:m[2],id:m[1]};
+  }
+  function route(a,b,via){
+    const P=[a.p];
+    if(via){via.forEach(v=>P.push(v));}
+    else{
+      const[x1,y1]=a.p,[x2,y2]=b.p;
+      const ha=!a.side||a.side==='l'||a.side==='r',hb=!b.side||b.side==='l'||b.side==='r';
+      if(ha&&hb){if(Math.abs(y1-y2)>.5){const mx=(x1+x2)/2;P.push([mx,y1],[mx,y2]);}}
+      else if(!ha&&!hb){if(Math.abs(x1-x2)>.5){const my=(y1+y2)/2;P.push([x1,my],[x2,my]);}}
+      else if(ha&&!hb){P.push([x2,y1]);}
+      else{P.push([x1,y2]);}
+    }
+    P.push(b.p);
+    return P.filter((p,i)=>i===0||Math.hypot(p[0]-P[i-1][0],p[1]-P[i-1][1])>.5);
+  }
+  function pathD(P,r){
+    r=r||8;let d='M'+P[0][0]+','+P[0][1];
+    for(let i=1;i<P.length-1;i++){
+      const p0=P[i-1],p1=P[i],p2=P[i+1];
+      const d1=Math.hypot(p1[0]-p0[0],p1[1]-p0[1]),d2=Math.hypot(p2[0]-p1[0],p2[1]-p1[1]);
+      const rr=Math.min(r,d1/2,d2/2);
+      const a=[p1[0]-(p1[0]-p0[0])/d1*rr,p1[1]-(p1[1]-p0[1])/d1*rr],b=[p1[0]+(p2[0]-p1[0])/d2*rr,p1[1]+(p2[1]-p1[1])/d2*rr];
+      d+=' L'+a[0]+','+a[1]+' Q'+p1[0]+','+p1[1]+' '+b[0]+','+b[1];
+    }
+    const L=P[P.length-1];return d+' L'+L[0]+','+L[1];
+  }
+  function labelAt(P,e){
+    if(e.lp)return e.lp;let best=-1,bi=0;
+    for(let i=0;i<P.length-1;i++){const L=Math.hypot(P[i+1][0]-P[i][0],P[i+1][1]-P[i][1]);if(L>best){best=L;bi=i;}}
+    return[(P[bi][0]+P[bi+1][0])/2,(P[bi][1]+P[bi+1][1])/2];
+  }
+  function drawNode(g,n){
+    const gg=el('g',{class:'nd st-'+(n.st||'ref'),tabindex:'0',role:'button','aria-label':n.t+(n.s?' — '+[].concat(n.s).join(', '):''),'data-id':n.id},g);
+    el('rect',{x:n.x,y:n.y,width:n.w,height:n.h,rx:10,class:'nb'},gg);
+    el('rect',{x:n.x+1,y:n.y+6,width:4,height:Math.max(4,n.h-12),rx:2,class:'nbar'},gg);
+    const ty=n.y+(n.ty||20);
+    txt(gg,n.x+14,ty,'nt',n.t);
+    [].concat(n.s||[]).forEach((s,i)=>txt(gg,n.x+14,ty+16*(i+1),'ns',s));
+    if(n.r)txt(gg,n.x+14,n.y+n.h-9,'nr','› '+n.r);
+    if(n.cap){
+      let cx=n.x+n.w-7;
+      [].concat(n.cap).slice().reverse().forEach(k=>{
+        const w=CAP[k].length*6.4+10;cx-=w;
+        const cg=el('g',{class:'ctag '+k},gg);
+        el('rect',{x:cx,y:n.y+7,width:w,height:15,rx:4},cg);
+        txt(cg,cx+w/2,n.y+18,null,CAP[k],'middle');cx-=4;
+      });
+    }
+    return gg;
+  }
+  function drawEdge(ge,gl,e,nodes,sid){
+    const a=end(e.f,nodes),b=end(e.t,nodes),P=route(a,b,e.via),c=e.c||'ink';
+    const p=el('path',{d:pathD(P),class:'eg eg-'+c+(e.d?' dash':'')+(e.k?' thick':''),'marker-end':'url(#'+sid+'-m-'+c+')','data-f':a.id||'','data-t':b.id||''},ge);
+    if(e.bi)p.setAttribute('marker-start','url(#'+sid+'-m-'+c+')');
+    if(e.l){
+      const q=labelAt(P,e),w=e.l.length*5.9+12;
+      const lg=el('g',{class:'elb','data-f':a.id||'','data-t':b.id||''},gl);
+      el('rect',{x:q[0]-w/2,y:q[1]-9,width:w,height:18,rx:9},lg);
+      txt(lg,q[0],q[1]+3.6,null,e.l,'middle');
+    }
+  }
+  function detail(n){
+    const st=n.st||'ref';
+    let h='<div class="row"><span class="pill '+(STC[st]||'')+(st==='extn'?' dash':'')+'">'+(ST[st]||st)+'</span>'+[].concat(n.cap||[]).map(k=>'<span class="cap '+k+'">'+CAP[k]+'</span>').join('')+'</div><h4>'+esc(n.t)+'</h4>';
+    if(n.m)h+='<div class="dm">'+esc(n.m)+'</div>';
+    h+='<div class="db">'+(n.d||esc([].concat(n.s||[]).join(' · ')))+'</div>';
+    if(n.refs)h+='<div class="dr">'+n.refs.map(r=>'<span class="lic">'+esc(r)+'</span>').join('')+'</div>';
+    return h;
+  }
+  function clear(svg){svg.classList.remove('picking');svg.querySelectorAll('.sel,.hl,.nb-hl').forEach(x=>x.classList.remove('sel','hl','nb-hl'));const pn=svg.dataset.panel&&document.getElementById(svg.dataset.panel);if(pn&&pn.classList.contains('float'))pn.classList.remove('show');}
+  function select(svg,n,panelId,fn){
+    clear(svg);svg.classList.add('picking');
+    const g=svg.querySelector('.nd[data-id="'+n.id+'"]');if(g)g.classList.add('sel');
+    svg.querySelectorAll('[data-f="'+n.id+'"],[data-t="'+n.id+'"]').forEach(x=>{
+      x.classList.add('hl');const o=x.dataset.f===n.id?x.dataset.t:x.dataset.f;
+      const og=o&&svg.querySelector('.nd[data-id="'+o+'"]');if(og)og.classList.add('nb-hl');
+    });
+    const pn=panelId&&document.getElementById(panelId);if(pn){const fl=pn.classList.contains('float');pn.innerHTML=(fl?'<button type="button" class="dx" aria-label="Đóng">×</button>':'')+(fn||detail)(n);if(fl){pn.classList.add('show');pn.querySelector('.dx').onclick=()=>clear(svg);}}
+  }
+  function fitLabels(svg){svg.querySelectorAll('.elb').forEach(g=>{const t=g.querySelector('text'),r=g.querySelector('rect');try{const b=t.getBBox();if(b.width>0){r.setAttribute('x',b.x-6);r.setAttribute('width',b.width+12);}}catch(_){}});}
+  function diagram(svgId,spec,panelId,fn){
+    const svg=document.getElementById(svgId);if(!svg)return null;
+    svg.innerHTML='';svg.setAttribute('viewBox','0 0 '+spec.w+' '+spec.h);svg.dataset.panel=panelId||'';
+    const defs=el('defs',null,svg);
+    COLORS.forEach(c=>{const m=el('marker',{id:svgId+'-m-'+c,viewBox:'0 0 10 10',refX:'9',refY:'5',markerWidth:'6',markerHeight:'6',orient:'auto-start-reverse'},defs);el('path',{d:'M0,0 L10,5 L0,10 z',class:'mk mk-'+c},m);});
+    const gz=el('g',null,svg),ge=el('g',null,svg),gn=el('g',null,svg),gl=el('g',null,svg);
+    (spec.zones||[]).forEach(z=>{
+      el('rect',{x:z.x,y:z.y,width:z.w,height:z.h,rx:(z.rx==null?16:z.rx),class:'zone zone-'+(z.k||'n')},gz);
+      if(z.t)txt(gz,z.x+(z.tx||14),z.y+22,'zl zl-'+(z.k||'n'),z.t);
+      if(z.s)txt(gz,z.x+z.w-14,z.y+22,'zs',z.s,'end');
+    });
+    (spec.texts||[]).forEach(t=>txt(gz,t.x,t.y,t.c||'sv-txt',t.s,t.a));
+    const nodes={};spec.nodes.forEach(n=>{nodes[n.id]=n;});
+    (spec.edges||[]).forEach(e=>drawEdge(ge,gl,e,nodes,svgId));
+    spec.nodes.forEach(n=>{
+      const g=drawNode(gn,n),pick=()=>select(svg,n,panelId,fn);
+      g.addEventListener('click',ev=>{ev.stopPropagation();pick();});
+      g.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();pick();}});
+    });
+    (spec.tags||[]).forEach(t=>{const w=CAP[t.k].length*6.4+10,cg=el('g',{class:'ctag '+t.k},gl);el('rect',{x:t.x,y:t.y,width:w,height:15,rx:4},cg);txt(cg,t.x+w/2,t.y+11,null,CAP[t.k],'middle');});
+    svg.addEventListener('click',()=>clear(svg));
+    fitLabels(svg);
+    return nodes;
+  }
+  function zoom(wrap){
+    const vp=wrap.querySelector('.zvp'),st=wrap.querySelector('.zst'),pct=wrap.querySelector('.zpct');
+    let s=1,x=0,y=0,drag=null,moved=false;
+    const apply=()=>{st.style.transform='translate('+x+'px,'+y+'px) scale('+s+')';if(pct)pct.textContent=Math.round(s*100)+'%';};
+    const at=(f,cx,cy)=>{const r=vp.getBoundingClientRect();const px=cx==null?r.width/2:cx,py=cy==null?r.height/2:cy;const ns=Math.min(4,Math.max(.5,s*f));x=px-(px-x)*ns/s;y=py-(py-y)*ns/s;s=ns;apply();};
+    const reset=()=>{s=1;x=0;y=0;apply();};
+    const b=k=>wrap.querySelector('[data-z="'+k+'"]');
+    if(b('in'))b('in').onclick=()=>at(1.25);
+    if(b('out'))b('out').onclick=()=>at(.8);
+    if(b('fit'))b('fit').onclick=reset;
+    if(b('full'))b('full').onclick=()=>{if(document.fullscreenElement)document.exitFullscreen();else if(wrap.requestFullscreen)wrap.requestFullscreen();};
+    vp.addEventListener('wheel',e=>{if(!(e.ctrlKey||e.metaKey))return;e.preventDefault();const r=vp.getBoundingClientRect();at(e.deltaY<0?1.1:.9,e.clientX-r.left,e.clientY-r.top);},{passive:false});
+    vp.addEventListener('pointerdown',e=>{if(e.button!==0||e.target.closest('.nd'))return;drag={sx:e.clientX-x,sy:e.clientY-y};moved=false;vp.classList.add('grab');});
+    window.addEventListener('pointermove',e=>{if(!drag)return;x=e.clientX-drag.sx;y=e.clientY-drag.sy;moved=true;apply();});
+    window.addEventListener('pointerup',()=>{drag=null;vp.classList.remove('grab');});
+    vp.addEventListener('click',e=>{if(moved){e.stopPropagation();moved=false;}},true);
+    vp.addEventListener('dblclick',e=>{if(!e.target.closest('.nd'))reset();});
+    apply();
+  }
+  /* QA: text outside its box, title/tag collision, node overlap, label over node */
+  function check(){
+    const out=[];
+    document.querySelectorAll('svg').forEach(svg=>{
+      const nds=[...svg.querySelectorAll('.nd')];
+      const boxes=nds.map(g=>({id:g.dataset.id,b:g.querySelector('.nb').getBBox()}));
+      nds.forEach(g=>{
+        const r=g.querySelector('.nb').getBBox();
+        g.querySelectorAll('text').forEach(t=>{const b=t.getBBox();if(!b.width)return;if(b.x<r.x-1||b.x+b.width>r.x+r.width+1||b.y+b.height>r.y+r.height+2)out.push({svg:svg.id,id:g.dataset.id,issue:'text overflow',text:t.textContent.slice(0,40),px:Math.round(b.x+b.width-(r.x+r.width))});});
+        const tags=[...g.querySelectorAll('.ctag rect')],nt=g.querySelector('.nt');
+        if(tags.length&&nt){const tb=nt.getBBox(),left=Math.min.apply(null,tags.map(x=>+x.getAttribute('x')));if(tb.x+tb.width>left-4)out.push({svg:svg.id,id:g.dataset.id,issue:'title hits tag',px:Math.round(tb.x+tb.width-left+4)});}
+      });
+      const ov=(a,b)=>a.x<b.x+b.width&&b.x<a.x+a.width&&a.y<b.y+b.height&&b.y<a.y+a.height;
+      for(let i=0;i<boxes.length;i++)for(let j=i+1;j<boxes.length;j++)if(ov(boxes[i].b,boxes[j].b))out.push({svg:svg.id,issue:'node overlap',a:boxes[i].id,b:boxes[j].id});
+      svg.querySelectorAll('.elb rect').forEach(r=>{const lb=r.getBBox();boxes.forEach(bx=>{if(ov(lb,bx.b))out.push({svg:svg.id,issue:'label on node',label:r.parentNode.textContent.slice(0,30),node:bx.id});});});
+    });
+    return out;
+  }
+  function theme(btnId){
+    const b=document.getElementById(btnId);if(!b)return;
+    b.addEventListener('click',()=>{const d=!document.documentElement.classList.contains('dark');document.documentElement.classList.toggle('dark',d);localStorage.setItem('ao-theme',d?'dark':'light');});
+  }
+  return {diagram,zoom,check,theme,esc,CAP,ST};
+})();
+/* ===== end shared kit ===== */
+</script>
+<script>
+/* ---------- Diagram 1 — FINAL UNIFIED ARCHITECTURE (viewBox 1480×830) ---------- */
+const DG1={w:1480,h:830,
+ zones:[
+  {x:10,y:40,w:320,h:775,k:'dev',t:'Thiết bị người dùng',s:'Windows · macOS'},
+  {x:20,y:236,w:300,h:461,k:'sub',t:'Cowork Local Runtime'},
+  {x:450,y:40,w:725,h:775,k:'srv',t:'Server · AgentOps Control Plane',s:'k8s · ns ho-agentops'},
+  {x:460,y:72,w:175,h:380,k:'sub',t:'Biên · Control'},
+  {x:645,y:72,w:330,h:380,k:'nao',t:'Não · AI Intelligence'},
+  {x:985,y:72,w:180,h:380,k:'sub',t:'Policy · Audit'},
+  {x:460,y:464,w:705,h:118,k:'sub',t:'Điều phối bền',tx:440},
+  {x:460,y:596,w:705,h:90,k:'sub',t:'Dữ liệu'},
+  {x:460,y:700,w:705,h:100,k:'sub',t:'Enterprise LLM · tự host',s:'ADR-0057'},
+  {x:1190,y:40,w:280,h:775,k:'ext',t:'Bên ngoài',s:'Enterprise · 3rd-party'}],
+ tags:[{x:222,y:246,k:'nao'},{x:264,y:246,k:'tay'}],
+ nodes:[
+  /* device */
+  {id:'shell',x:25,y:102,w:290,h:56,st:'new',t:'Cowork Shell (Electron)',s:'tray · PKCE · safeStorage · cập nhật',m:'services/cowork-desktop/src/main/ (plan v3 D-02, D-06, D-07)',d:'Cửa sổ, tray, đăng nhập OAuth Code + PKCE qua trình duyệt hệ thống, giữ secret bằng <code>safeStorage</code> (Keychain/DPAPI), cập nhật, giám sát sidecar. <b>Không</b> tự điều khiển OS/trình duyệt.'},
+  {id:'ui',x:25,y:166,w:290,h:56,st:'ext',cap:['tai','mieng'],t:'Cowork UI · ui-v2',s:'chat · tiến độ · duyệt · Tôi tự làm',m:'services/ui-v2 (đã có) · build target desktop + src/lib/desktop.ts (mới, plan v3)',d:'Cùng code Portal web (chung trang + <code>nav.ts</code>), chỉ gọi <code>window.cowork.*</code> qua contextBridge và API HTTPS. Tai: chat, kéo thả file. Miệng: stream tiến độ, overlay xác nhận, live view.'},
+  {id:'loopL',x:35,y:268,w:270,h:46,st:'new',t:'Agent Loop Core (máy)',s:'cùng core với server',m:'services/runtime/agent_loop/ (thuần Python, không import DB/Temporal)',d:'AD-05: cùng một loop chạy ở 3 nơi. Trên máy dùng cho Việc nhanh (Managed) và mọi việc (Standalone). Budget + thang replan như server.'},
+  {id:'mrL',x:35,y:322,w:270,h:46,st:'new',t:'Model Router (máy)',s:'company → gateway · local · byok',m:'services/edge_worker/models/ (plan v3 D-15/D-16)',d:'Chế độ hiệu lực = tenant cho phép × lớp dữ liệu × người dùng chọn; rỗng → <code>MODEL_MODE_NOT_ALLOWED</code>. <b>Không auto-failover ra ngoài</b> (AD-07). Managed + local/byok: văn bản người dùng vào/ra vẫn qua guard server (v3 D-18); nội dung gửi model ở lại máy, redact trên máy (D-17); audit là telemetry do máy khai — residual risk ghi ở v3 08 §3.1.'},
+  {id:'conn',x:35,y:381,w:270,h:52,st:'new',t:'Kết nối · Journal',s:'WSS ra ngoài · seq/ack · đệm offline',m:'services/edge_worker/connection.py · journal.py',d:'Máy chủ động mở WSS tới Edge Gateway (không mở cổng local, server không vào máy). Mất mạng: chạy tiếp, đệm sự kiện, gửi lại khi nối lại; server khử trùng theo <code>(job_id, wseq)</code>.'},
+  {id:'polL',x:35,y:445,w:270,h:52,st:'new',t:'Local Policy Enforcer',s:'grants · allowlist · trần effect · sandbox',m:'services/edge_worker/{sandbox,grants,redact}.py',d:'Điểm cưỡng chế cuối cho HÀNH ĐỘNG: thư mục được cấp, allowlist origin/app, trần <code>max_effect</code> (read · write_local · external). LLM chỉ được làm chặt hơn. Hành động hệ quả luôn dừng chờ xác nhận.'},
+  {id:'brw',x:35,y:509,w:130,h:52,st:'new',t:'Browser',s:'Playwright · DOM',m:'drivers/browser.py + browser-use DOM serializer',d:'Lane xác định: <code>replay_engine</code> (không LLM). Lane agentic: quan sát DOM → a11y → vision. Phiên portal ở lại máy.'},
+  {id:'cua',x:175,y:509,w:130,h:52,st:'new',t:'Desktop CUA',s:'UIA/AX · VLM',m:'drivers/desktop.py · @ui-tars/sdk Operator',d:'App desktop không có API: cây UIA (Win) / AX (mac) trước, VLM toạ độ sau. Model VL tự host (spike S-6).'},
+  {id:'file',x:35,y:571,w:130,h:52,st:'new',t:'File · Excel',s:'thư mục được cấp',m:'drivers/file.py · jobs/file_read_local.py',d:'Đọc/ghi trong thư mục người dùng cấp (<code>realpath</code>, chặn <code>..</code>/UNC/junction); xoá → Thùng rác.'},
+  {id:'mcpl',x:175,y:571,w:130,h:52,st:'new',t:'MCP · Skills',s:'server cục bộ',m:'MCP client (mcp 2.3.0) + skills nạp theo việc',d:'MCP server người dùng thêm trên máy (Standalone) hoặc do tenant cấp (Managed). Skill = gói hướng dẫn + tool.'},
+  {id:'oss',x:35,y:633,w:270,h:52,st:'oss',t:'OSS pin qua adapter',s:'browser-use · @ui-tars/sdk · mcp',m:'browser-use 0.13.11 (MIT) · @ui-tars/sdk 1.2.3 (Apache-2.0) · mcp 2.3.0 (MIT)',d:'Chỉ dùng primitive (không dùng loop của engine); telemetry tắt bằng env; egress allowlist. Policy luôn của AgentOps.'},
+  {id:'llmL',x:25,y:716,w:290,h:52,st:'extn',t:'Local LLM · Ollama / LM Studio',s:'openai_compat · localhost',m:'bên ngoài · người dùng/IT cài',d:'Mode <code>local</code>: ảnh màn hình + văn bản không rời máy; audit gửi telemetry (không nội dung) về <code>ai_invocations</code>.'},
+  /* server col A */
+  {id:'kc',x:470,y:104,w:155,h:52,st:'exist',t:'Keycloak',s:'OIDC · chain = tenant',m:'infra/keycloak · services/api/auth.py::tenant_of',d:'Nguồn danh tính duy nhất (realm <code>ho-agentops</code>, RS256/JWKS). Thêm client public <code>agentops-cowork</code> (PKCE + offline token) cho máy.'},
+  {id:'ing',x:470,y:168,w:155,h:52,st:'exist',t:'ingress-nginx',s:'/api → / · TLS',m:'infra/helm/agentops-*/templates/ingress.yaml',d:'Rewrite <code>/api(/|$)(.*)</code> → <code>/$2</code>; route backend không prefix <code>/api</code>. Host agentops.test / agentops-v2.test.'},
+  {id:'api',x:470,y:232,w:155,h:66,st:'ext',t:'AgentOps API',s:['FastAPI · BFF /v2 · /kb','/v1/mcp + tools/call'],m:'services/api · routes_mcp.py (hôm nay chỉ tools/list)',d:'Mở rộng: <code>tools/call</code> (ADR-0053), cửa vào Intent Classifier, route "Máy của tôi". Host Agent Loop cho việc ngắn (in-process, có trần budget); vượt trần hoặc cần chờ duyệt → <code>escalate_to_workflow</code> sang worker, không giữ việc dài trên pod API. Replica 1 (SSE) → không chứa gateway thiết bị.'},
+  {id:'portal',x:470,y:310,w:155,h:52,st:'ext',cap:'mieng',t:'Portal',s:'ui-v2 · /hoi-dap · /runs',m:'services/ui-v2/src/App.tsx',d:'Portal web hiện có; thêm "Máy của tôi", Việc nhanh, tiến độ bước trên máy. Cùng code với Cowork UI.'},
+  {id:'egw',x:470,y:374,w:155,h:66,st:'new',t:'Edge Gateway',s:['agentops-edge-gateway','WSS · dispatcher · ≥2'],m:'services/api/edge_app.py · routes_edge_worker.py · chart agentops-edge-gateway',d:'Deployment riêng (cùng image api), ≥ 2 replica + PDB/HPA: đăng ký máy, WSS, presence, dispatcher + khoá, nhận file, proxy LLM <code>company</code> (<code>/edge/v1/llm/chat</code>), nhận telemetry, signal Temporal. AD-08.'},
+  /* brain */
+  {id:'intent',x:660,y:104,w:300,h:52,st:'ext',t:'Intent Classifier + Dynamic Router',s:'T0 kNN → T1 decision → strategy hint',m:'ai/kb_answer_router.py::route_intent · ai/llm_decision.py',d:'AD-02: tổng quát cascade "System 1 trước System 2" của KB. Đầu ra: chiến lược khởi đầu + shortlist tool + budget + gợi ý placement + độ tin cậy. <b>Không phải cổng chặn</b>.'},
+  {id:'loop',x:660,y:180,w:300,h:66,st:'new',t:'Agent Loop Core',s:['plan → act → observe → reflect → replan','budget · sub-agent · meta-tool · fail-loud'],m:'services/runtime/agent_loop/ (đề xuất · tổng quát hoá computer_use/ của plan v3 · tên chốt trong ADR AD-05)',d:'AD-05/06: state machine có op tên rõ; mỗi đề xuất hành động đi qua Policy Gate; meta-tool đổi hướng (<code>search_capabilities</code>, <code>delegate_to_device</code>, <code>escalate_to_workflow</code>, <code>ask_human</code>). Thay vòng tool tĩnh của <code>chat_agent.py</code> (6 lượt).'},
+  {id:'ctx',x:660,y:260,w:300,h:52,st:'exist',t:'Context & Memory',s:'knowledge.search · memory · DSL · grounding',m:'knowledge/search_tool.py · memory/typed_store.py · workflow.py',d:'Component Context của Harness: grounding bằng dữ liệu thật (KB hybrid RRF, memory typed, DSL). Thêm: năng lực máy + Site/App Profile.'},
+  {id:'reg',x:660,y:324,w:300,h:52,st:'ext',t:'Capability Registry',s:'tool · MCP · skill · năng lực máy · tìm động',m:'services/runtime/tools/registry.py (ToolDescriptor: risk_level, delegation_level)',d:'AD-04: một registry cho tool nội bộ, MCP server ngoài, năng lực thiết bị, skill. LLM tìm tool theo nhu cầu; thêm năng lực không phải sửa Intent Classifier.'},
+  {id:'model',x:660,y:388,w:300,h:52,st:'ext',t:'Model Router · LLM gateway',s:'company · local · byok — không auto-failover',m:'services/api/config_llm.py (6 tier) · ai/gateway.py · llm_service.py',d:'Mọi lời gọi model: redact → injection-defend → model → unredact → audit. Tier light/standard/heavy/vision/decision/guard chọn bằng config. AD-07.'},
+  /* col C */
+  {id:'guard',x:1000,y:104,w:150,h:52,st:'exist',t:'Guard · Redactor',s:'fail-closed · PII',m:'ai/guard/ (CONVERSATIONAL_SURFACES) · ai/redactor.py',d:'Mọi bề mặt hội thoại gọi <code>check_input</code> + <code>check_output</code>, fail-closed. Cowork đăng ký thêm bề mặt. (Có trên workspace SoT, chưa có trên main.)'},
+  {id:'policy',x:1000,y:180,w:150,h:66,st:'ext',t:'Policy Gate',s:['effect · L0–L5','5 bước ADR-0053'],m:'policy_dsl.py · agents/delegation_hint.py (thêm max_effect · v3 D-20) · executor_governance.py',d:'AD-03 Capability ≠ Permission: allow / ask / deny theo hiệu ứng (read · write_local · external) và delegation. Ghi ra ngoài: form typed → validate xác định → xem trước → xác nhận → tools/call.'},
+  {id:'hitl',x:1000,y:260,w:150,h:52,st:'exist',cap:'mieng',t:'Approvals',s:'HITL · human_inbox',m:'human_inbox.py (TASK_TYPES: confirmation…) · routes_approvals.py',d:'Người duyệt trên Portal hoặc overlay Cowork; Temporal chờ bằng signal, resume đúng chỗ.'},
+  {id:'audit',x:1000,y:324,w:150,h:52,st:'exist',t:'Audit · OTel',s:'ai_invocations',m:'ai/audit.py · observability.py · OTel Collector',d:'Mỗi lời gọi model + mỗi hành động một dòng audit; mode local/byok gửi telemetry (token, model, hash — không nội dung).'},
+  {id:'vault',x:1000,y:388,w:150,h:52,st:'exist',t:'Session Vault',s:'Fernet · tenant',m:'services/runtime/session_vault.py',d:'Credential portal phía server. Phiên của nhân viên trên máy ở lại máy (profile trình duyệt riêng).'},
+  /* orchestration */
+  {id:'tmp',x:470,y:496,w:155,h:66,st:'ext',t:'Temporal',s:['RunWorkflow · Schedule','chờ edge job (signal)'],m:'runtime/workflow.py · temporal_schedule.py',d:'AD-01: orchestrator bền duy nhất. Mở rộng: bước <code>placement: device</code> chờ signal <code>edge_job_update</code>; bước agentic dài chạy như activity.'},
+  {id:'wk',x:650,y:496,w:225,h:66,st:'ext',cap:'tay',t:'agentops-worker',s:['Agent Loop host (bước agentic)','op xác định · activities · placement'],m:'runtime/worker.py · specs/ · operations/ · activities/',d:'Host bền của Agent Loop Core: loop chạy như <b>Temporal activity</b> (được phép non-deterministic), thân workflow chỉ điều phối bằng signal/timer nên giữ ràng buộc determinism. Phân tích dữ liệu bằng op xác định (12 kind trong schema, không LLM). <code>dispatch_edge_jobs</code> giao bước cho máy.'},
+  {id:'wb',x:890,y:496,w:130,h:66,st:'exist',t:'worker-browser',s:['Chromium :9333','trần effect read'],m:'helm agentops-worker · browser_worker.py',d:'Browser pool phía server; agentic host=server chỉ đọc/tải (plan v3 D-14).'},
+  {id:'hub',x:1035,y:496,w:125,h:66,st:'new',t:'MCP Client Hub',s:['MCP client','→ Kong'],m:'mcp 2.3.0 Streamable HTTP client',d:'AD-10: gọi MCP server doanh nghiệp qua route Kong; danh tính người yêu cầu từ token Keycloak; idempotency key mỗi lần xác nhận.'},
+  /* data */
+  {id:'pg',x:470,y:628,w:235,h:48,st:'exist',t:'PostgreSQL 16 + pgvector',s:'system of record',m:'psycopg · migrations idempotent',d:'PG-only. Thêm bảng <code>edge_devices</code>, <code>edge_jobs</code>, <code>edge_job_events</code> (plan v3).'},
+  {id:'redis',x:720,y:628,w:150,h:48,st:'exist',t:'Redis',s:'SSE fan-out · cache',m:'api/sse_bus.py · runtime/cache.py',d:'Serving tier; mất Redis → degrade về DB (ADR-0031). Đánh thức chéo pod cho Edge Gateway.'},
+  {id:'minio',x:895,y:628,w:265,h:48,st:'exist',t:'MinIO / S3',s:'artifact · file gốc · file từ máy',m:'services/infra/s3_client.py',d:'File máy upload (sha256) và artifact trả về máy đều qua MinIO.'},
+  /* llm */
+  {id:'vllm',x:470,y:732,w:300,h:52,st:'exist',t:'vLLM · Gemma 4 26B-A4B',s:'tier light · standard · vision',m:'infra/helm/vllm/values-composer.yaml',d:'LLM doanh nghiệp tự host trên GPU công ty (ADR-0057); provider openai_compat.'},
+  {id:'vguard',x:790,y:732,w:165,h:52,st:'exist',t:'vLLM · Gemma 4 E4B',s:'tier guard',m:'infra/helm/vllm/values-guard.yaml',d:'Model guard topic-safety (R-7).'},
+  {id:'dec',x:975,y:732,w:185,h:52,st:'ext',t:'Decision tier',s:'ADR-0049 · flag OFF',m:'config_llm.get_decision_tier_config · ai/llm_decision.py',d:'Model nhỏ trả lựa chọn có xác suất; dùng làm T1 của Intent Classifier (bật bằng <code>LLM_DECISION_ENABLED</code>).'},
+  /* external */
+  {id:'xmcp',x:1205,y:104,w:250,h:52,st:'extn',t:'MCP client ngoài',s:'Kiro · Claude · IDE → /v1/mcp',d:'Gọi năng lực AgentOps qua MCP (tools/list có; tools/call mở rộng). Có thể publish qua Kong (ADR-0056).'},
+  {id:'fpt',x:1205,y:168,w:250,h:52,st:'extn',t:'FPT Chat',s:'gửi đi: có · nhận vào: planned',m:'services/integrations/fptchat/client.py',d:'Kênh Tai/Miệng bổ sung; inbound sẽ gọi đúng đường hội thoại chung, không mở đường thứ hai.'},
+  {id:'byok',x:1205,y:232,w:250,h:52,st:'extn',t:'BYOK provider',s:'tenant opt-in · mặc định OFF',d:'Chỉ dữ liệu public/internal đã redact; key ở safeStorage của máy; cần ADR riêng.'},
+  {id:'sso',x:1205,y:330,w:250,h:52,st:'extn',t:'SSO Inside / FPT SSO',s:'ADR-0052 · Keycloak broker',d:'Keycloak làm identity broker; khoá ổn định <code>employee_id</code>. Chưa có code.'},
+  {id:'qms',x:1205,y:404,w:250,h:52,st:'extn',t:'Connector nguồn (QMS…)',s:'ADR-0055 · planned',d:'Connector khai báo <code>list_changes(since)</code> + <code>fetch(id)</code> chạy trong Temporal. Chưa có code.'},
+  {id:'kong',x:1205,y:503,w:250,h:52,st:'extn',t:'Kong · API gateway FRT',s:'ADR-0056 · planned',d:'Mọi lời gọi ra hệ thống nội bộ đi qua route Kong (rate limit, allowlist, service account). Plugin xác thực token chưa kiểm.'},
+  {id:'ssc',x:1205,y:581,w:120,h:52,st:'extn',t:'SSC Ticket',s:'MCP server',d:'Hệ thống đích của golden use case. Tạo ticket = action L3 + HITL.'},
+  {id:'hrm',x:1335,y:581,w:120,h:52,st:'extn',t:'HRM · BI',s:'qua Kong',d:'Các hệ thống nội bộ khác, cùng mẫu MCP/connector.'}
+ ],
+ edges:[
+  {f:'shell.r',t:'kc.l',l:'OIDC · PKCE'},
+  {f:'ui.r',t:'ing.l',c:'mieng',l:'HTTPS · SSE'},
+  {f:'conn.r',t:'egw.l',c:'tay',k:1,l:'WSS outbound'},
+  {f:'ing.b',t:'api.t'},
+  {f:'api.r@0.2',t:'intent.l',c:'nao',via:[[640,245.2],[640,130]]},
+  {f:'intent.b',t:'loop.t',c:'nao',k:1,l:'chiến lược',lp:[810,168]},
+  {f:'loop.b@0.3',t:'ctx.t@0.3',c:'nao',bi:1},
+  {f:'loop.r@0.75',t:'reg.r@0.4',c:'nao',bi:1,via:[[970,229.5],[970,344.8]]},
+  {f:'loop.l',t:'model.l',c:'nao',bi:1,via:[[652,213],[652,414]]},
+  {f:'loop.r@0.5',t:'policy.l',c:'nao',k:1},
+  {f:'policy.b',t:'hitl.t',c:'mieng'},
+  {f:'reg.r@0.8',t:'hub.t',c:'tay',via:[[980,365.6],[980,458],[1097.5,458]],l:'tools/call',lp:[1040,458]},
+  {f:'hub.r',t:'kong.l',c:'tay',k:1,l:'MCP',lp:[1182,529]},
+  {f:'kong.b@0.24',t:'ssc.t',c:'extn',d:1},{f:'kong.b@0.76',t:'hrm.t',c:'extn',d:1},
+  {f:'egw.b',t:'tmp.t',c:'tay',bi:1,l:'signal · dispatch',lp:[547.5,466]},
+  {f:'api.r@0.8',t:'tmp.r@0.25',via:[[640,284.8],[640,512.5]]},
+  {f:'tmp.r@0.6',t:'wk.l@0.6'},
+  {f:'model.b@0.74',t:[882,700],c:'nao',l:'openai_compat',lp:[882,589]},
+  {f:'wk.b@0.2',t:'pg.t@0.957',bi:1},
+  {f:'mrL.l',t:'llmL.t@0.1207',c:'nao',via:[[28,345],[28,706],[60,706]]},
+  {f:'polL.b@0.2407',t:'brw.t',c:'tay'},{f:'polL.b@0.7593',t:'cua.t',c:'tay'}
+ ]};
+</script>
+<script>
+/* ---------- Diagram 2 — AI ANATOMY & INTENT FLOW (viewBox 1480×740) ---------- */
+const DG2={w:1480,h:740,
+ zones:[
+  {x:10,y:40,w:190,h:600,k:'tai',t:'Tai'},
+  {x:215,y:40,w:555,h:600,k:'nao',t:'Não · hiểu & chọn chiến lược'},
+  {x:785,y:40,w:215,h:600,k:'n',t:'6 chiến lược khởi đầu'},
+  {x:1015,y:40,w:275,h:600,k:'nao',t:'Não · Agent Loop Core'},
+  {x:1305,y:40,w:165,h:600,k:'mieng',t:'Miệng'},
+  {x:10,y:655,w:190,h:70,k:'tai',t:'Đầu vào'},
+  {x:215,y:655,w:785,h:70,k:'n',t:'Vùng tự do của LLM'},
+  {x:1015,y:655,w:455,h:70,k:'n',t:'Vùng cưỡng chế'}],
+ texts:[
+  {x:24,y:713,s:'→ 1 yêu cầu có danh tính'},
+  {x:229,y:713,s:'suy luận · tách việc · tìm & kết hợp tool · đổi executor · đổi chiến lược · replan — không bị giới hạn bởi danh sách intent'},
+  {x:1029,y:713,s:'Policy Gate · trần effect · L0–L5 · HITL · budget · audit — kiểm MỖI hành động'},
+  {x:797,y:600,s:'Router chỉ chọn điểm xuất phát.'},
+  {x:797,y:616,s:'LLM đổi hướng bằng meta-tool.'}],
+ nodes:[
+  {id:'chat',x:22,y:72,w:166,h:56,st:'tai',t:'Chat',s:'web · desktop · MCP',d:'ui-v2 /hoi-dap, wizard chat, Cowork UI, MCP client ngoài.'},
+  {id:'voice',x:22,y:152,w:166,h:56,st:'tai',t:'Voice',s:'Phase 2',d:'STT cục bộ là một kênh như chat (Phase 2).'},
+  {id:'file',x:22,y:232,w:166,h:56,st:'tai',t:'File · Excel',s:'kéo thả · thư mục cấp',d:'Upload qua <code>csv_io</code> (server) hoặc thư mục được cấp trên máy.'},
+  {id:'brw',x:22,y:312,w:166,h:56,st:'tai',t:'Trình duyệt',s:'tab đang mở · DOM',d:'Ngữ cảnh trang hiện tại từ Cowork Runtime (DOM rút gọn + a11y).'},
+  {id:'evt',x:22,y:392,w:166,h:56,st:'tai',t:'Sự kiện · lịch',s:'webhook · cron',d:'Temporal Schedule đã có; webhook/connector theo ADR-0055.'},
+  {id:'scr',x:22,y:472,w:166,h:56,st:'tai',t:'Màn hình',s:'UIA/AX · screenshot',d:'Quan sát nhiều tầng DOM → a11y → vision (plan v3 D-21).'},
+  {id:'ctx',x:230,y:100,w:160,h:80,st:'exist',t:'Context Engine',s:['danh tính · tenant','memory · KB · file'],m:'auth.py::tenant_of · memory/typed_store.py · knowledge/',d:'Ground yêu cầu: ai hỏi (token), phạm vi, memory, KB, file đính kèm, năng lực máy đang online.'},
+  {id:'gin',x:230,y:200,w:160,h:56,st:'exist',t:'Guard vào',s:'check_input',m:'ai/guard/ · CONVERSATIONAL_SURFACES',d:'Fail-closed trước khi tới LLM; block phải nêu nhóm policy.'},
+  {id:'red',x:230,y:276,w:160,h:56,st:'exist',t:'Redact PII',s:'trước mọi LLM',m:'ai/redactor.py',d:'PII → sentinel theo TokenMap phạm vi tenant; unredact khi trả ra.'},
+  {id:'t0',x:410,y:100,w:170,h:66,st:'exist',t:'T0 · kNN',s:['nhãn đóng · không LLM','chi phí ≈ 0'],m:'ai/kb_answer_router.py::route_intent',d:'System 1: kNN embedding trên tập intent đóng — không sinh chữ nên không bịa. Hôm nay chỉ cho KB; mở rộng nhãn: chat · knowledge · action · local · complex · long_running.'},
+  {id:'t1',x:410,y:196,w:170,h:66,st:'ext',t:'T1 · decision model',s:['xác suất · logprobs','chỉ khi T0 mơ hồ'],m:'ai/llm_decision.py · LLM_DECISION_ENABLED',d:'System 2 (ADR-0049): model nhỏ tự host trả lựa chọn có xác suất; dưới ngưỡng → chiến lược "complex" (để loop tự lập kế hoạch), không đoán.'},
+  {id:'multi',x:410,y:292,w:170,h:66,st:'new',t:'Đa ý định',s:['≥2 nhãn → việc con','vd Excel + KB + ticket'],d:'Một yêu cầu có nhiều ý định → chiến lược Phức hợp với shortlist tool hợp nhất.'},
+  {id:'hint',x:600,y:100,w:155,h:258,st:'ext',t:'Dynamic Router',s:['Strategy hint:','• chiến lược khởi đầu','• shortlist tool top-k','• budget · trần effect','• gợi ý nơi chạy','• độ tin cậy','','Không phải cổng chặn'],m:'mở rộng cascade ADR-0048 (S → T0 → T1 → T2)',d:'AD-02: đầu ra là PRIOR cho Agent Loop. LLM được thêm tool ngoài shortlist (qua registry search), đổi nơi chạy, chuyển sang workflow — trong phạm vi quyền.'},
+  {id:'r1',x:797,y:72,w:191,h:62,st:'nao',t:'Trả lời trực tiếp',s:'LLM · không tool',r:'host: API',d:'Hỏi chung, tóm tắt, soạn thảo. Guard ra trước khi hiện.'},
+  {id:'r2',x:797,y:146,w:191,h:62,st:'nao',t:'Tri thức · RAG',s:'KB cascade S→T0→T1→T2',r:'host: API · trích dẫn',m:'ai/kb_answer.py · kb_answer_verify.py',d:'Đường KB đã chạy: phạm vi không đoán, verifier xác định, có trích dẫn.'},
+  {id:'r3',x:797,y:220,w:191,h:62,st:'tay',t:'Hành động nghiệp vụ',s:'MCP · form typed · duyệt',r:'ADR-0053 · L3',d:'LLM điền form typed → code validate → xem trước → xác nhận → tools/call.'},
+  {id:'r4',x:797,y:294,w:191,h:62,st:'tay',t:'Việc trên máy',s:'file · app · browser',r:'host: Cowork Runtime',d:'Cần file/app/mạng nội bộ của người dùng → placement device.'},
+  {id:'r5',x:797,y:368,w:191,h:62,st:'nao',t:'Việc phức hợp',s:'plan + nhiều tool',r:'API → Temporal khi dài',d:'Loop tự lập kế hoạch, phối hợp nhiều executor; dài/chờ duyệt → escalate_to_workflow.'},
+  {id:'r6',x:797,y:442,w:191,h:62,st:'tay',t:'Quy trình dài hạn',s:'lịch · chờ duyệt · retry',r:'host: Temporal',d:'Workflow đã kích hoạt; bước agentic chạy như activity bền.'},
+  {id:'plan',x:1030,y:80,w:115,h:56,st:'nao',t:'Plan',s:'tách việc con',d:'Lập/sửa kế hoạch từ strategy hint; mỗi việc con có budget.'},
+  {id:'sel',x:1165,y:80,w:115,h:56,st:'nao',t:'Chọn tool',s:'registry search',d:'search_capabilities trên Capability Registry; không giới hạn ở shortlist.'},
+  {id:'gate',x:1165,y:176,w:115,h:56,st:'ext',t:'Policy Gate',s:'allow·ask·deny',m:'policy_dsl.py · delegation_hint.py',d:'Capability ≠ Permission: quyết định xác định theo effect + delegation + tenant.'},
+  {id:'act',x:1165,y:272,w:115,h:56,st:'tay',t:'Act',s:'server | máy',d:'Executor theo placement: API, worker, worker-browser, Cowork Runtime, MCP Hub.'},
+  {id:'obs',x:1030,y:272,w:115,h:56,st:'tai',t:'Observe',s:'kết quả · UI',d:'Kết quả tool là DỮ LIỆU không phải lệnh; redact + injection-defend trước khi đưa lại LLM.'},
+  {id:'refl',x:1030,y:176,w:115,h:56,st:'nao',t:'Reflect',s:'đạt mục tiêu?',d:'Verifier xác định khi có (file tồn tại, sha256, số khớp); không có thì LLM tự kiểm + giới hạn.'},
+  {id:'ladder',x:1030,y:352,w:250,h:116,st:'nao',t:'Thang replan + budget',s:['1 · retry có giới hạn','2 · đổi tool / executor','3 · lập lại kế hoạch','4 · hỏi người','5 · fail-loud, không im lặng'],d:'AD-06. Budget {bước, thời gian, lời gọi model, lặp hành động} → vượt là dừng có lý do.'},
+  {id:'meta',x:1030,y:484,w:250,h:90,st:'new',t:'Meta-tool đổi hướng',s:['search_capabilities · spawn_subagent','delegate_to_device','escalate_to_workflow · ask_human'],d:'Đổi chiến lược là một lời gọi tool — nên cũng đi qua Policy Gate và có audit.'},
+  {id:'mstream',x:1317,y:80,w:143,h:56,st:'mieng',t:'Stream tiến độ',s:'agent_step_* · SSE',d:'Mỗi op phát sự kiện; UI hiện bước + lý do.'},
+  {id:'mappr',x:1317,y:176,w:143,h:56,st:'mieng',t:'Duyệt · HITL',s:'xem trước + xác nhận',d:'Portal hoặc overlay Cowork; trả lời → signal resume.'},
+  {id:'mart',x:1317,y:272,w:143,h:56,st:'mieng',t:'Kết quả',s:'file · bảng · link',d:'Artifact trên MinIO; có thể trả file về máy.'},
+  {id:'mnot',x:1317,y:368,w:143,h:56,st:'mieng',t:'Thông báo',s:'OS · FPT Chat',d:'Báo xong/cần xác nhận.'},
+  {id:'mfb',x:1317,y:464,w:143,h:56,st:'mieng',t:'Feedback',s:'đánh giá · promote',d:'Đánh giá + "Lưu thành quy trình" (AD-12).'}
+ ],
+ edges:[
+  {f:[200,140],t:'ctx.l',c:'tai',k:1},
+  {f:'ctx.b',t:'gin.t'},{f:'gin.b',t:'red.t'},
+  {f:'ctx.r',t:'t0.l@0.6061',c:'nao'},
+  {f:'t0.b',t:'t1.t',c:'nao',l:'mơ hồ',lp:[495,181]},
+  {f:'t1.b',t:'multi.t',c:'nao',d:1,l:'≥2 nhãn',lp:[495,277]},
+  {f:'t0.r',t:'hint.l@0.1279',c:'nao'},{f:'t1.r',t:'hint.l@0.5',c:'nao'},{f:'multi.r',t:'hint.l@0.8721',c:'nao'},
+  {f:'hint.r',t:'r1.l',c:'nao',k:1},{f:'hint.r',t:'r2.l',c:'nao',k:1},{f:'hint.r',t:'r3.l',c:'nao',k:1},
+  {f:'hint.r',t:'r4.l',c:'nao',k:1},{f:'hint.r',t:'r5.l',c:'nao',k:1},{f:'hint.r',t:'r6.l',c:'nao',k:1},
+  {f:'r1.r',t:'plan.l',c:'nao',via:[[1006,103],[1006,108]]},{f:'r2.r',t:'plan.l',c:'nao',via:[[1006,177],[1006,108]]},
+  {f:'r3.r',t:'plan.l',c:'nao',via:[[1006,251],[1006,108]]},{f:'r4.r',t:'plan.l',c:'nao',via:[[1006,325],[1006,108]]},
+  {f:'r5.r',t:'plan.l',c:'nao',via:[[1006,399],[1006,108]]},{f:'r6.r',t:'plan.l',c:'nao',via:[[1006,473],[1006,108]]},
+  {f:'plan.r',t:'sel.l',c:'nao',k:1},{f:'sel.b',t:'gate.t',c:'nao',k:1},
+  {f:'gate.b',t:'act.t',c:'tay',k:1,l:'allow',lp:[1222,252]},
+  {f:'act.l',t:'obs.r',c:'tai',k:1},{f:'obs.t',t:'refl.b',c:'nao',k:1},
+  {f:'refl.t',t:'plan.b',c:'nao',k:1,l:'replan',lp:[1087,156]},
+  {f:'gate.l',t:'refl.r',d:1},
+  {f:'refl.l',t:'ladder.l@0.5',d:1,c:'nao',via:[[1022,204],[1022,410]]},
+  {f:'gate.r',t:'mappr.l',c:'mieng',bi:1,l:'ask',lp:[1298,204]},
+  {f:'sel.r',t:'mstream.l',c:'mieng'},{f:'act.r',t:'mart.l',c:'mieng'},
+  {f:'meta.l',t:'hint.b',c:'new',d:1,k:1,via:[[677.5,529]],l:'đổi chiến lược · thêm tool',lp:[890,529]}
+ ]};
+</script>
+<script>
+/* ---------- Diagram 4 — STANDALONE vs MANAGED (viewBox 1480×640) ---------- */
+(function(){
+  const rows=[
+    ['Não chạy ở','trên máy — Agent Loop Core (máy)','server (API · Temporal worker) · máy cho Việc nhanh'],
+    ['LLM','local (Ollama / LM Studio) · BYOK cá nhân','company vLLM qua Edge Gateway · local/byok theo tenant'],
+    ['Chính sách','policy pack ký sẵn · external luôn hỏi từng lần','policy tenant · delegation L0–L5 · RAI cho bước L3'],
+    ['Danh tính','tài khoản OS · token MCP cá nhân','Keycloak PKCE · sổ thiết bị · thu hồi từng máy'],
+    ['Guard · redact','guard cục bộ (Gemma 4 E4B) · redact trên máy','guard server cho văn bản vào/ra (plan v3 D-18)'],
+    ['Audit','journal cục bộ · xuất khi liên kết','ai_invocations · edge_job_events · OTel'],
+    ['Workflow','việc ngắn · không lịch · không bền','Temporal: lịch · chờ duyệt · retry · promote'],
+    ['MCP · hệ thống','MCP server người dùng tự thêm','MCP Client Hub → Kong → SSC · HRM · BI']];
+  const core=[
+    ['Cowork UI (ui-v2 desktop)','chat · tiến độ · duyệt · Tôi tự làm','ext'],
+    ['Agent Loop Core','plan · act · observe · replan · budget','new'],
+    ['Capability Registry (client)','tool · MCP · skill · tìm động','new'],
+    ['Executors','browser · desktop CUA · file/Excel · MCP cục bộ','new'],
+    ['Model Router (máy)','company · local · byok — không auto-failover','new'],
+    ['Local Policy Enforcer','grants · allowlist · trần effect · sandbox','new'],
+    ['Kết nối · Journal','Managed: WSS + seq/ack · Standalone: chỉ journal','new'],
+    ['Đóng gói · cập nhật','một bản cài Win/mac · ký số · cùng kênh cập nhật','new']];
+  const nodes=[],y0=80,step=62;
+  rows.forEach((r,i)=>{
+    nodes.push({id:'s'+i,x:25,y:y0+i*step,w:370,h:52,st:'tay',t:r[0],s:r[1],d:'<b>Standalone:</b> '+AO.esc(r[1])+'<br><b>Managed:</b> '+AO.esc(r[2])});
+    nodes.push({id:'m'+i,x:1085,y:y0+i*step,w:370,h:52,st:'ext',t:r[0],s:r[2],d:'<b>Managed:</b> '+AO.esc(r[2])+'<br><b>Standalone:</b> '+AO.esc(r[1])});
+  });
+  core.forEach((c,i)=>nodes.push({id:'c'+i,x:505,y:y0+i*step,w:470,h:52,st:c[2],t:c[0],s:c[1],d:'Cùng một code cho cả hai chế độ (AD-11). Chế độ chỉ là cấu hình + nguồn chính sách, không phải bản build khác.'}));
+  window.DG4={w:1480,h:640,
+    zones:[
+      {x:10,y:40,w:400,h:560,k:'dev',t:'Standalone · Phase 2',s:'cần ADR AD-11'},
+      {x:490,y:40,w:500,h:560,k:'nao',t:'Cùng core — một binary Cowork',s:'tái dùng 100%'},
+      {x:1070,y:40,w:400,h:560,k:'srv',t:'Managed · AgentOps',s:'máy là tay của control plane'}],
+    nodes:nodes,
+    edges:[
+      {f:[490,297],t:[410,297],c:'tay',bi:1,k:1,l:'standalone'},
+      {f:[990,297],t:[1070,297],c:'ext',bi:1,k:1,l:'managed'},
+      {f:[210,600],t:[1270,600],c:'new',k:1,d:1,via:[[210,620],[1270,620]],l:'Liên kết máy (PKCE) → Managed — không cài lại',lp:[740,620]}
+    ]};
+})();
+</script>
+<script>
+/* ---------- Diagram 5 — GOLDEN USE CASE sequence (Managed | Standalone) ---------- */
+(function(){
+  const LANES=[
+    {m:['Người dùng','nhân viên FRT'],s:['Người dùng','cá nhân'],cm:'usr',cs:'usr'},
+    {m:['Cowork UI','ui-v2 desktop'],s:['Cowork UI','ui-v2 desktop'],cm:'dev',cs:'dev'},
+    {m:['Cowork Runtime','máy · tay'],s:['Cowork Runtime','máy · não + tay'],cm:'dev',cs:'dev'},
+    {m:['Edge Gateway','WSS outbound'],s:['Edge Gateway','không dùng'],cm:'srv',cs:'srv',offS:1},
+    {m:['API · Não','Intent + Agent Loop'],s:['API · Não','không dùng'],cm:'srv',cs:'srv',offS:1},
+    {m:['Temporal · Worker','bền · op xác định'],s:['Temporal · Worker','không dùng'],cm:'srv',cs:'srv',offS:1},
+    {m:['Policy · HITL','server'],s:['Policy · HITL','→ Local Policy'],cm:'srv',cs:'srv',offS:1},
+    {m:['MCP Hub → Kong','→ SSC'],s:['SSC / KB MCP','token cá nhân'],cm:'ext',cs:'ext'},
+    {m:['vLLM công ty','Gemma 4'],s:['Local LLM','Ollama'],cm:'srv',cs:'dev'}];
+  const TAG={'Tai':'tai','Intent':'nao','Plan':'nao','Route':'nao','Local':'tay','Phân tích':'tay','Tra cứu':'nao','MCP':'tay','Duyệt':'mieng','Kết quả':'mieng','Feedback':'mieng'};
+  const STEPS={
+    m:[[0,1,'kéo doanh-thu-T9.xlsx + yêu cầu','Tai'],[1,4,'POST yêu cầu (+ file ref, device_id)','Tai'],
+       [4,4,'T0/T1: 3 ý định → chiến lược Phức hợp','Intent'],[4,8,'plan 4 việc con + shortlist tool','Plan'],
+       [4,5,'có bước chờ duyệt → escalate_to_workflow','Route'],[5,3,'bước placement=device: file.read_local','Route'],
+       [3,2,'job.offer (WSS)','Local'],[2,2,'Local Policy: thư mục được cấp ✓ · đọc xlsx','Local'],
+       [2,3,'upload bảng (sha256) → MinIO','Local'],[3,5,'job succeeded → signal','Local'],
+       [5,5,'aggregate + detect: 3 chi nhánh > 5% (không LLM)','Phân tích'],[5,4,'knowledge.search → quy định + trích dẫn','Tra cứu'],
+       [5,8,'điền form ticket typed (forced tool)','MCP'],[5,6,'validate xác định · effect=external · L3 → ask','Duyệt'],
+       [6,1,'xem trước 3 ticket','Duyệt'],[0,1,'Xác nhận','Duyệt'],[1,6,'approve → signal Temporal','Duyệt'],
+       [5,7,'tools/call ssc.create_ticket ×3 · idempotency key','MCP'],[7,5,'3 ticket id','MCP'],
+       [5,1,'SSE: tóm tắt + Excel + link ticket','Kết quả'],[0,1,'đánh giá · Lưu thành quy trình (lịch Temporal)','Feedback']],
+    s:[[0,1,'kéo doanh-thu-T9.xlsx + yêu cầu','Tai'],[1,2,'yêu cầu (IPC)','Tai'],
+       [2,2,'Intent hint (cùng core) → Phức hợp','Intent'],[2,8,'plan 4 việc con','Plan'],
+       [2,2,'đọc xlsx trong thư mục được cấp','Local'],[2,2,'phân tích bảng trên máy','Phân tích'],
+       [2,7,'tra cứu quy định qua MCP được cấp','Tra cứu'],[2,8,'điền form ticket typed','MCP'],
+       [2,2,'Local Policy: external → luôn hỏi','Duyệt'],[2,1,'xem trước 3 ticket','Duyệt'],[0,1,'Xác nhận','Duyệt'],
+       [1,2,'approve (IPC)','Duyệt'],[2,7,'tools/call create_ticket ×3','MCP'],[7,2,'3 ticket id','MCP'],
+       [2,1,'tóm tắt + file + link','Kết quả'],[0,1,'đánh giá · liên kết AgentOps để lưu quy trình','Feedback']]};
+  const NS='http://www.w3.org/2000/svg';
+  const el=(t,a,p)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);p&&p.appendChild(e);return e;};
+  const tx=(p,x,y,c,s,an)=>{const e=el('text',{x:x,y:y},p);if(c)e.setAttribute('class',c);if(an)e.setAttribute('text-anchor',an);e.textContent=s;return e;};
+  const X=i=>195+i*149;
+  function render(mode){
+    const svg=document.getElementById('dg5');svg.innerHTML='';
+    const steps=STEPS[mode],W=1480,H=96+steps.length*30+16;
+    svg.setAttribute('viewBox','0 0 '+W+' '+H);
+    const defs=el('defs',{},svg);
+    ['tai','nao','tay','mieng'].forEach(c=>{const m=el('marker',{id:'sq-'+c,viewBox:'0 0 10 10',refX:'9',refY:'5',markerWidth:'7',markerHeight:'7',orient:'auto-start-reverse'},defs);el('path',{d:'M0,0 L10,5 L0,10 z',class:'mk mk-'+c},m);});
+    const gr=el('g',{},svg),gl=el('g',{},svg),gh=el('g',{},svg);
+    LANES.forEach((L,i)=>{
+      const off=mode==='s'&&L.offS,lab=L[mode],g=el('g',{class:'lnh '+(mode==='s'?L.cs:L.cm)+(off?' off':'')},gh);
+      el('rect',{x:X(i)-71,y:12,width:142,height:44,rx:9},g);
+      tx(g,X(i),30,'t1',lab[0],'middle');tx(g,X(i),46,'t2',lab[1],'middle');
+      el('line',{x1:X(i),y1:58,x2:X(i),y2:H-8,class:'lline'+(off?' off':'')},gl);
+    });
+    steps.forEach((st,i)=>{
+      const [f,t,label,tag]=st,c=TAG[tag],y=92+i*30,g=el('g',{class:'sqrow'},gr);
+      el('rect',{x:0,y:y-15,width:W,height:30,class:'sqbg'},g);
+      tx(g,12,y+4,'sqn',String(i+1).padStart(2,'0'));
+      const tg=el('g',{class:'sqt'},g);el('rect',{x:40,y:y-9,width:78,height:17,style:'fill:color-mix(in srgb,var(--'+c+') 10%,var(--panel));stroke:var(--'+c+')'},tg);const tt=tx(tg,79,y+3,null,tag.toUpperCase(),'middle');tt.setAttribute('style','fill:var(--'+c+')');
+      let lx,ly,an;
+      if(f===t){
+        const x=X(f);el('path',{d:'M'+x+' '+(y-7)+' h30 v13 h-27',class:'sqa','marker-end':'url(#sq-'+c+')',style:'stroke:var(--'+c+')'},g);
+        lx=x+38;ly=y+4;an='start';
+      }else{
+        const x1=X(f),x2=X(t),dir=x2>x1?1:-1;
+        el('line',{x1:x1,y1:y+2,x2:x2-dir*3,y2:y+2,class:'sqa','marker-end':'url(#sq-'+c+')',style:'stroke:var(--'+c+')'},g);
+        lx=(x1+x2)/2;ly=y-3;an='middle';
+      }
+      const lg=el('g',{class:'sql'},g),r=el('rect',{x:0,y:0,width:0,height:16,rx:4},lg),t2=tx(lg,lx,ly,null,label,an);
+      try{const b=t2.getBBox();r.setAttribute('x',b.x-4);r.setAttribute('y',b.y-1);r.setAttribute('width',b.width+8);r.setAttribute('height',b.height+2);}catch(_){}
+    });
+  }
+  window.renderSeq=render;
+  document.querySelectorAll('#d5 .seg button').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('#d5 .seg button').forEach(x=>{x.classList.toggle('on',x===b);x.setAttribute('aria-pressed',x===b?'true':'false');});
+    render(b.dataset.mode);
+  }));
+})();
+</script>
+<script>
+/* ---------- init ---------- */
+AO.theme('themeBtn');
+document.querySelectorAll('[data-zoom]').forEach(AO.zoom);
+AO.diagram('dg1',DG1,'pn1');
+AO.diagram('dg2',DG2,'pn2');
+AO.diagram('dg4',DG4,'pn4');
+renderSeq('m');
+(function(){
+  const map={exist:['Đã có','var(--exist)'],ext:['Mở rộng','var(--ext)'],new:['Xây mới','var(--new)'],oss:['OSS pin','var(--oss)'],extn:['Ngoài / planned','var(--extn)']};
+  const n={exist:0,ext:0,new:0,oss:0,extn:0};
+  document.querySelectorAll('#d3 .ch').forEach(c=>{const v=c.getAttribute('style')||'';for(const k in n)if(v.indexOf('var(--'+k+')')>=0)n[k]++;});
+  document.getElementById('counts').innerHTML=Object.keys(n).map(k=>'<div class="stat" style="--c:'+map[k][1]+'"><b>'+n[k]+'</b><span>'+map[k][0]+'</span></div>').join('');
+})();
+window.__AO_CHECK=()=>AO.check();
+</script>
+<script>
+/* ---------- Ví dụ thực tế — AF · Đối soát MBB (viewBox 1480×640) ---------- */
+const DGREAL={w:1480,h:640,
+ zones:[
+  {x:10,y:40,w:1460,h:132,k:'nao',t:'Lúc dựng — một lần',s:'LLM chỉ đọc intent → op-chain; không viết code'},
+  {x:10,y:186,w:1460,h:322,k:'tay',t:'Lúc chạy — mỗi ngày',s:'op xác định trên agentops-worker · không gọi LLM'},
+  {x:10,y:522,w:1460,h:108,k:'n',t:'Validation — chặn silent-wrong'}],
+ nodes:[
+  {id:'b1',x:22,y:80,w:170,h:72,st:'tai',t:'Intent PDF',s:['1 trang · 4 quy tắc','9 cột đầu ra'],m:'AF- intent - Đối soát MBB_02.pdf',d:'Khoá: BankTransactionId (CT) và BÚT TOÁN (MB); trùng khoá → Σ số tiền; CT_AMOUNT = DebitAmount, SP_AMOUNT = PHÁT SINH CÓ; CHENH_LECH = SP − CT, bỏ = 0; KET_QUA âm "HT âm", dương "Báo có".'},
+  {id:'b2',x:212,y:80,w:170,h:72,st:'ext',t:'Intent Classifier',s:['→ đối soát 2 chiều','chiến lược: quy trình lặp'],m:'ai/kb_answer_router.py (T0) · ai/llm_decision.py (T1)',d:'Nhận diện việc lặp hằng ngày có file đầu vào cố định → chiến lược "Quy trình dài hạn": dựng workflow, chạy xác định, không dùng agent loop lúc chạy.'},
+  {id:'b3',x:402,y:80,w:200,h:72,st:'exist',t:'Phân tích + intake',s:['nhận file theo CỘT','không theo tên file'],m:'ai/job_analyzer.py · intake lane',d:'File tên "bravo SP" thực chất là sao kê MB — nhận ra nhờ cột BÚT TOÁN, PHÁT SINH CÓ. Op bị giới hạn trong vocabulary của operation_kinds.schema.json (12 kind).'},
+  {id:'b4',x:622,y:80,w:170,h:72,st:'exist',t:'op_to_agent',s:['7 persona','1 persona = 1 việc'],m:'ai/intake_builder.py::build_from_mapped → ai/_agent_factory.py::op_to_agent',d:'Một wrapper duy nhất biến op thành persona + node DAG; không có code riêng cho use case MBB.'},
+  {id:'b5',x:812,y:80,w:200,h:72,st:'exist',t:'Trial + golden-gate',s:['chạy trên file mẫu','24/24 dòng · 7/8 cột'],m:'ai/trial_runner.py · api/_intake_golden.py',d:'Trial dùng CÙNG interpreter production. Golden-gate so từng cột với file kết quả AF → báo 4 điểm lệch intent, fail-loud.'},
+  {id:'b6',x:1032,y:80,w:170,h:72,st:'exist',t:'Duyệt A + RAI',s:['transform · report = L3','reconcile = L2'],m:'agent_types.get_delegation_level · delegation_hint.requires_human_approval',d:'Đã kiểm trên code: fetch/form_upload L0, reconcile L2, transform L3, report L3 → kích hoạt cần A duyệt + Responsible AI checklist.'},
+  {id:'b7',x:1222,y:80,w:236,h:72,st:'exist',t:'Kích hoạt · lịch hằng ngày',s:['Temporal Schedule','file mới → chạy lại'],m:'temporal_schedule.py · ScheduledRunWorkflow',d:'Hôm nay: người dùng upload file mỗi ngày. V2: Cowork đọc thẳng thư mục được cấp (placement device) hoặc tải sao kê qua recording.'},
+  {id:'ict',x:22,y:226,w:150,h:66,st:'tai',t:'Giao dịch CT.xlsx',s:['941 dòng · 42 cột'],d:'Xuất từ hệ thống kế toán: BankTransactionId, DebitAmount, DocDate, Description, DocNoRSA. Có dòng Dư đầu/cuối kỳ không có khoá.'},
+  {id:'imb',x:22,y:410,w:150,h:66,st:'tai',t:'Sao kê MB.xlsx',s:['header dòng 7 · 955 dòng'],d:'6 dòng tiêu đề phía trên, 4.782 ô gộp, số tiền là text "1,234", 2 dòng tổng ở cuối.'},
+  {id:'nct',x:222,y:226,w:160,h:66,st:'exist',t:'Nạp giao dịch CT',s:['form_upload · L0'],m:'csv_io.py (đọc Excel một cổng)',d:'Đọc qua reader dùng chung để cột lúc chọn = cột lúc chạy (D-1).'},
+  {id:'nmb',x:222,y:410,w:160,h:66,st:'exist',t:'Nạp sao kê MB',s:['form_upload · L0'],m:'csv_io.detect_excel_header_row',d:'Tự tìm vùng bảng: bỏ 6 dòng tiêu đề, gộp ô, lấy header dòng 7.'},
+  {id:'gct',x:442,y:226,w:250,h:66,st:'exist',t:'Chuẩn hoá + gộp CT',s:['bỏ 3 dòng không khoá · Σ theo KEY_ID'],m:'operations/transform.py · operations/aggregate.py',d:'drop_rows khoá rỗng → rename BankTransactionId → KEY_ID → aggregate sum. 938 dòng có khoá → 933 khoá (5 khoá trùng được gộp).'},
+  {id:'gmb',x:442,y:410,w:250,h:66,st:'exist',t:'Chuẩn hoá + gộp MB',s:['text "1,234" → số · bỏ 3 dòng'],m:'operations/_numeric.py · transform cast',d:'cast PHÁT SINH CÓ sang số (dấu phân cách nghìn) → rename BÚT TOÁN → KEY_ID → aggregate sum. 952 khoá.'},
+  {id:'rec',x:772,y:300,w:230,h:96,st:'exist',t:'Đối soát 2 chiều',s:['reconcile · outer · KEY_ID · L2','915 cả hai · 18 chỉ CT','37 chỉ sao kê'],m:'operations/reconcile.py (outer merge + _match)',d:'Trạng thái từng khoá: match / mismatch / missing_left / missing_right, tolerance 0.'},
+  {id:'cls',x:1062,y:300,w:196,h:96,st:'exist',t:'Phân loại chênh lệch',s:['CHENH_LECH = SP − CT','bỏ 946 dòng = 0','KET_QUA: HT âm · Báo có'],m:'operations/transform.py (derive · drop_rows) · expr_engine',d:'946 dòng chênh 0 = 915 khớp + 31 bút toán chỉ có phát sinh Nợ. Biểu thức chạy trong expr_engine sandbox.'},
+  {id:'rep',x:1298,y:226,w:160,h:66,st:'exist',t:'Xuất file kết quả',s:['report · xlsx · L3'],m:'operations/report.py · report_delivery → MinIO',d:'9 cột theo intent; artifact lên MinIO; Managed mode có thể trả file về máy (deliver_to_device).'},
+  {id:'out',x:1298,y:410,w:160,h:66,st:'mieng',t:'24 dòng cần xử lý',s:['18 HT âm · 6 Báo có'],d:'18 dòng CT có mà sao kê không có (HT âm); 6 dòng sao kê có mà CT chưa ghi (Báo có).'},
+  {id:'v1',x:22,y:560,w:262,h:56,st:'exist',t:'Dò header Excel',s:['dòng 7 · 4.782 ô gộp'],m:'csv_io.py::detect_excel_header_row',d:'Generic: dùng cho mọi file có tiêu đề văn bản phía trên bảng (CQT, sao kê).'},
+  {id:'v2',x:302,y:560,w:262,h:56,st:'exist',t:'Số kiểu text "1,234"',s:['_numeric · dấu phân cách nghìn'],m:'operations/_numeric.py',d:'Ô không parse được giữ rõ là lỗi, không âm thầm thành 0.'},
+  {id:'v3',x:582,y:560,w:300,h:56,st:'exist',t:'Khoá nối trùng → gộp trước',s:['không gộp: 34 dòng lệch (10 giả)'],m:'api/_intake_join_uniqueness.py · _intake_join_group_proposal.py',d:'Chặn cổng publish và đề xuất chèn bước gộp. Đã có test từ một ngày đối soát MBB khác (21 khoá trùng).'},
+  {id:'v4',x:902,y:560,w:280,h:56,st:'ext',t:'Tổng kiểm soát',s:['Σ chênh lệch = Σ SP − Σ CT  ✓'],d:'Đề xuất thêm vào Validation như kiểm tra bắt buộc của mọi reconcile; hôm nay kiểm bằng script.'},
+  {id:'v5',x:1202,y:560,w:256,h:56,st:'exist',t:'Golden-gate',s:['24/24 dòng · 7/8 cột · 4 điểm lệch'],m:'api/_intake_golden.py · ai/_intake_from_example_verify.py',d:'So kết quả trial với file mẫu do người dùng đưa; lệch → hỏi lại, không xanh giả.'}
+ ],
+ edges:[
+  {f:'b1.r',t:'b2.l',c:'tai'},{f:'b2.r',t:'b3.l',c:'nao'},{f:'b3.r',t:'b4.l',c:'nao'},{f:'b4.r',t:'b5.l',c:'nao'},{f:'b5.r',t:'b6.l',c:'mieng'},{f:'b6.r',t:'b7.l',c:'nao'},
+  {f:'ict.r',t:'nct.l',c:'tai'},{f:'imb.r',t:'nmb.l',c:'tai'},
+  {f:'nct.r',t:'gct.l',c:'tay',l:'941'},{f:'nmb.r',t:'gmb.l',c:'tay',l:'955'},
+  {f:'gct.r',t:'rec.l@0.3',c:'tay',k:1,l:'933 khoá'},{f:'gmb.r',t:'rec.l@0.7',c:'tay',k:1,l:'952 khoá'},
+  {f:'rec.r',t:'cls.l',c:'tay',k:1,l:'970'},
+  {f:'cls.r@0.3',t:'rep.l',c:'tay',k:1,via:[[1278,328.8],[1278,259]],l:'24',lp:[1278,300]},
+  {f:'rep.b',t:'out.t',c:'mieng',k:1},
+  {f:'v1.t@0.916',t:'nmb.b@0.25',d:1},
+  {f:'v2.t@0.7557',t:'gmb.b@0.232',d:1},
+  {f:'v3.t@0.7933',t:'rec.b@0.2087',d:1,l:'gộp trước khi nối',lp:[820,462]},
+  {f:'v4.t@0.7071',t:'cls.b@0.1939',d:1},
+  {f:'v5.t@0.6172',t:'out.b@0.3875',d:1}
+ ]};
+AO.diagram('dgReal',DGREAL,'pnReal');
+</script>
+</body>
+</html>
