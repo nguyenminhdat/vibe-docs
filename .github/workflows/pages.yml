@@ -3,8 +3,10 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  schedule:
+    - cron: '17 * * * *'
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 concurrency:
@@ -21,11 +23,26 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Remove expired documents
+        id: expiry
+        run: node scripts/expire.mjs
+      - name: Record expired document removal
+        if: steps.expiry.outputs.changed == 'true'
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- public/docs public/documents.json
+          git commit -m 'Remove expired public documents'
+          git push origin HEAD:main
       - run: npm test && npm run check && npm run build
+        if: github.event_name != 'schedule' || steps.expiry.outputs.changed == 'true'
       - uses: actions/configure-pages@v5
+        if: github.event_name != 'schedule' || steps.expiry.outputs.changed == 'true'
       - uses: actions/upload-pages-artifact@v3
+        if: github.event_name != 'schedule' || steps.expiry.outputs.changed == 'true'
         with:
           path: dist
       - name: Deploy
+        if: github.event_name != 'schedule' || steps.expiry.outputs.changed == 'true'
         id: deployment
         uses: actions/deploy-pages@v4

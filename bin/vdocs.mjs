@@ -57,7 +57,14 @@ export function collect(source){
   return {files,size,entry,base};
 }
 function run(cmd,args,cwd=root){return execFileSync(cmd,args,{cwd,encoding:'utf8',stdio:['ignore','pipe','pipe']}).trim();}
-function options(args){const out={};for(let i=0;i<args.length;i++){const key=args[i];if(!key.startsWith('--'))throw Error(`Unexpected argument: ${key}`);if(['--public','--no-push'].includes(key))out[key.slice(2)]=true;else if(['--slug','--title','--category','--description'].includes(key)){if(!args[i+1]||args[i+1].startsWith('--'))throw Error(`Missing value for ${key}`);out[key.slice(2)]=args[++i];}else throw Error(`Unknown option: ${key}`);}return out;}
+function options(args){const out={};for(let i=0;i<args.length;i++){const key=args[i];if(!key.startsWith('--'))throw Error(`Unexpected argument: ${key}`);if(['--public','--no-push','--no-expiry'].includes(key))out[key.slice(2)]=true;else if(['--slug','--title','--category','--description','--expires-in'].includes(key)){if(!args[i+1]||args[i+1].startsWith('--'))throw Error(`Missing value for ${key}`);out[key.slice(2)]=args[++i];}else throw Error(`Unknown option: ${key}`);}return out;}
+export function expiration(opts,previous,now=Date.now()){
+  if(opts['no-expiry']&&opts['expires-in'])throw Error('Use either --expires-in or --no-expiry');
+  if(opts['no-expiry'])return undefined;
+  if(opts['expires-in']!==undefined){const match=/^([1-9][0-9]{0,2})d$/.exec(opts['expires-in']);if(!match||Number(match[1])>365)throw Error('--expires-in must be 1d to 365d');return new Date(now+Number(match[1])*86400000).toISOString();}
+  if(previous?.expiresAt&&Date.parse(previous.expiresAt)<=now)throw Error('Document has expired. Use --expires-in to renew it or --no-expiry to remove its expiry.');
+  return previous?.expiresAt;
+}
 export function publish(source,opts={},repoRoot=root){
   if(!opts.public)throw Error('This is a PUBLIC repository. Confirm the document is cleared for public sharing with --public. Never publish internal or sensitive data.');
   const bundle=collect(source),slug=opts.slug||path.basename(path.resolve(source),path.extname(source)).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
@@ -67,6 +74,7 @@ export function publish(source,opts={},repoRoot=root){
   let docs=JSON.parse(fs.readFileSync(manifest,'utf8')),previous=docs.find(d=>d.slug===slug);
   const title=opts.title||previous?.title||fs.readFileSync(bundle.entry,'utf8').match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]?.replace(/<[^>]*>/g,'').trim()||slug;
   const record={slug,title,category:opts.category||previous?.category||'Documents',description:opts.description??previous?.description??'A public HTML document.',path:`docs/${slug}/index.html`,updatedAt:new Date().toISOString(),size:bundle.size};
+  const expiresAt=expiration(opts,previous);if(expiresAt)record.expiresAt=expiresAt;
   scan('metadata',JSON.stringify(record));
   if(!opts['no-push']){
     run('gh',['auth','status'],repoRoot);
@@ -75,7 +83,7 @@ export function publish(source,opts={},repoRoot=root){
     run('git',['pull','--ff-only'],repoRoot);
     docs=JSON.parse(fs.readFileSync(manifest,'utf8'));
     // Reload remote metadata after pulling to avoid overwriting concurrent updates.
-    previous=docs.find(d=>d.slug===slug);for(const key of ['title','category','description'])if(opts[key]===undefined&&previous)record[key]=previous[key];
+    previous=docs.find(d=>d.slug===slug);const refreshedExpiry=expiration(opts,previous);if(refreshedExpiry)record.expiresAt=refreshedExpiry;else delete record.expiresAt;for(const key of ['title','category','description'])if(opts[key]===undefined&&previous)record[key]=previous[key];
   }
   const temp=fs.mkdtempSync(path.join(os.tmpdir(),'vdocs-'));
   try{for(const [rel,bytes] of bundle.files){const dest=path.join(temp,rel);fs.mkdirSync(path.dirname(dest),{recursive:true});fs.writeFileSync(dest,bytes);}fs.mkdirSync(path.dirname(target),{recursive:true});fs.rmSync(target,{recursive:true,force:true});fs.cpSync(temp,target,{recursive:true});}finally{fs.rmSync(temp,{recursive:true,force:true});}
@@ -85,7 +93,7 @@ export function publish(source,opts={},repoRoot=root){
 }
 function main(){
   const [command,source,...args]=process.argv.slice(2);
-  if(command!=='publish'||!source){console.log('Usage: vdocs publish <file.html|folder> --public [--slug name] [--title "Title"] [--category Guides] [--description "Summary"] [--no-push]');return;}
+  if(command!=='publish'||!source){console.log('Usage: vdocs publish <file.html|folder> --public [--slug name] [--title "Title"] [--category Guides] [--description "Summary"] [--expires-in 7d | --no-expiry] [--no-push]');return;}
   const record=publish(source,options(args));console.log(`Published ${record.title}\nhttps://nguyenminhdat.github.io/vibe-docs/${record.path.replace('index.html','')}\n${args.includes('--no-push')?'Local only; changes were not committed or pushed.':'GitHub Pages is deploying. Check: gh run list --workflow pages.yml'}`);
 }
 if(process.argv[1]&&fs.realpathSync(process.argv[1])===fileURLToPath(import.meta.url)){try{main();}catch(e){console.error(`vdocs: ${e.message}`);process.exitCode=1;}}

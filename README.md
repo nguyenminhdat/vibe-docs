@@ -62,3 +62,15 @@ Check the latest deployment: `gh run list --workflow pages.yml`; wait for a run 
 ## Project layout
 
 `public/` is the deployed site, `public/documents.json` is the document index, `public/docs/<slug>/` holds bundles, `bin/vdocs.mjs` is the CLI, and `AGENTS.md` gives Codex the publishing protocol.
+
+## Optional expiry (public takedown)
+
+```bash
+vdocs publish ./file.html --public --expires-in 7d
+```
+
+`--expires-in 1d` through `365d` sets an expiry from publication time. Without this flag new documents have no expiry. Updates preserve the existing expiry; passing the flag again explicitly renews it. `--no-expiry` explicitly removes the expiry. The homepage shows the date and filters expired entries.
+
+The Pages workflow checks hourly (at minute 17) and removes expired source bundles and catalog entries, commits the removal, then redeploys in the same workflow. A no-op scheduled check skips build/deployment. GitHub schedules are best-effort: removal is normally at the next hourly check plus deployment time, not guaranteed at the exact expiry minute. GitHub may disable schedules after 60 days of repository inactivity. Check Actions regularly; manual cleanup can be triggered with `gh workflow run pages.yml`. Never rely on this for strict security or regulatory retention deadlines.
+
+This is **public takedown**, not secure erasure or private access. Git history, clones, forks, caches, previous deployment artifacts and downloaded copies may retain the content. HTTPS protects transit, not who can read the document. Use authenticated private storage for sensitive documents; a password added to public HTML/JavaScript is not access control.

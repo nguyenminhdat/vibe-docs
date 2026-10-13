@@ -13,3 +13,7 @@ When the user requests publication here, complete the work autonomously within t
 7. Return the live document link, repo link and any concrete verification limits. Never report deployment success based only on a successful push.
 
 For changes to the project itself, run `npm test && npm run check && npm run build` before committing. Keep no backend, no database and no unnecessary dependencies. Deploy only `public/` through the build output. Node 20+ is required. Build outputs and temporary files stay ignored.
+
+## Expiring documents
+
+When the user requests a limited publication window, add `--expires-in 7d` (or the requested 1–365 days). Existing expiry is preserved on updates; only explicitly renew it or use `--no-expiry` when requested. Explain that removal runs on a best-effort hourly schedule and cannot erase Git history or downloaded copies. Never describe the public repository as private, or expiry as guaranteed secure deletion. Do not rewrite Git history as part of routine expiry. Use `gh workflow run pages.yml` to trigger an immediate expired-content check when requested.
