@@ -1,0 +1,29 @@
+[
+  {
+    "slug": "welcome",
+    "title": "Welcome to Vibe Docs",
+    "category": "Guides",
+    "description": "A quick guide to publishing beautiful HTML documents with one command.",
+    "path": "docs/welcome/index.html",
+    "updatedAt": "2026-10-13T10:00:00.000Z",
+    "size": 1584
+  },
+  {
+    "slug": "publishing-guide",
+    "title": "The one-command publishing guide",
+    "category": "Guides",
+    "description": "From local HTML to a stable, shareable URL. A practical walkthrough.",
+    "path": "docs/publishing-guide/index.html",
+    "updatedAt": "2026-10-13T10:00:00.000Z",
+    "size": 1746
+  },
+  {
+    "slug": "html-starter",
+    "title": "A minimal HTML document starter",
+    "category": "Templates",
+    "description": "A clean, responsive starting point for your next public document.",
+    "path": "docs/html-starter/index.html",
+    "updatedAt": "2026-10-13T10:00:00.000Z",
+    "size": 1529
+  }
+]

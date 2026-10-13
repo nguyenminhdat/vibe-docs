@@ -1,0 +1,7 @@
+{
+  "name": "vibe-docs", "version": "1.0.0", "private": true,
+  "type": "module", "description": "A small public HTML library powered by GitHub Pages",
+  "bin": {"vdocs": "bin/vdocs.mjs"},
+  "scripts": {"build": "node scripts/build.mjs", "test": "node --test", "check": "node scripts/check.mjs"},
+  "engines": {"node": ">=20"}
+}
