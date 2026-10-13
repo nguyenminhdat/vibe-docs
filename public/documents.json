@@ -32,7 +32,8 @@
     "category": "Demo",
     "description": "Demo công khai: giao diện xanh lá, đổi sáng/tối và publish đầy đủ CSS, JS, SVG.",
     "path": "docs/hello-vibe-docs/index.html",
-    "updatedAt": "2026-10-13T10:32:40.296Z",
-    "size": 4433
+    "updatedAt": "2026-10-13T10:36:24.026Z",
+    "size": 4446,
+    "expiresAt": "2026-10-20T10:36:40.279Z"
   }
 ]
