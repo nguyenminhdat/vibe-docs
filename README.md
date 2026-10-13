@@ -1,6 +1,6 @@
 # Vibe Docs
 
-A lightweight library for **public HTML documents**, built with plain HTML, CSS, JavaScript and GitHub Pages. Search by title/summary, filter by category, open documents, copy stable links and download the original HTML.
+A lightweight library for **public HTML documents with random share URLs**, built with plain HTML, CSS, JavaScript and GitHub Pages. Search by title/summary, filter by category, open documents, copy stable links and download the original HTML.
 
 Website: https://nguyenminhdat.github.io/vibe-docs/
 
@@ -23,7 +23,7 @@ The linked `vdocs` command works from any folder. If global npm linking is unava
 vdocs publish ./file.html --public
 ```
 
-`--public` declares that you have reviewed and cleared the content for public sharing. The CLI collects relative CSS, JS modules, images, fonts and other referenced assets, checks common secret patterns, pulls main, updates the manifest, commits only the document bundle and pushes. GitHub Actions deploys automatically.
+`--public` declares that you have reviewed and cleared the content for public sharing. The CLI collects relative CSS, JS modules, images, fonts and other referenced assets, checks common secret patterns, pulls main, updates the publishing registry and listed-only catalog, commits the document bundle and updated registries, and pushes. GitHub Actions deploys automatically.
 
 ```bash
 vdocs publish ./report-folder --public --slug quarterly-report --title "Quarterly report" --category Reports --description "A public summary."
@@ -61,7 +61,7 @@ Check the latest deployment: `gh run list --workflow pages.yml`; wait for a run 
 
 ## Project layout
 
-`public/` is the deployed site, `public/documents.json` is the document index, `public/docs/<slug>/` holds bundles, `bin/vdocs.mjs` is the CLI, and `AGENTS.md` gives Codex the publishing protocol.
+`public/` is the deployed site, `public/documents.json` is the document index, `public/docs/<random-id>/` holds bundles; root `documents.json` is the full publishing registry, `bin/vdocs.mjs` is the CLI, and `AGENTS.md` gives Codex the publishing protocol.
 
 ## Optional expiry (public takedown)
 
@@ -74,3 +74,23 @@ vdocs publish ./file.html --public --expires-in 7d
 The Pages workflow checks hourly (at minute 17) and removes expired source bundles and catalog entries, commits the removal, then redeploys in the same workflow. A no-op scheduled check skips build/deployment. GitHub schedules are best-effort: removal is normally at the next hourly check plus deployment time, not guaranteed at the exact expiry minute. GitHub may disable schedules after 60 days of repository inactivity. Check Actions regularly; manual cleanup can be triggered with `gh workflow run pages.yml`. Never rely on this for strict security or regulatory retention deadlines.
 
 This is **public takedown**, not secure erasure or private access. Git history, clones, forks, caches, previous deployment artifacts and downloaded copies may retain the content. HTTPS protects transit, not who can read the document. Use authenticated private storage for sensitive documents; a password added to public HTML/JavaScript is not access control.
+
+
+## Random URLs and unlisted documents
+
+Each document gets a cryptographically random 128-bit ID (32 hex characters). The ID is generated once using Node crypto and stays the same on updates. `--slug` is a logical key used by the CLI to find an existing document; the slug is no longer the URL.
+
+```bash
+# New documents are unlisted by default; add a seven-day expiry if desired.
+vdocs publish ./file.html --public --slug my-document --expires-in 7d
+
+# Explicitly include a document in the homepage and search.
+vdocs publish ./file.html --public --slug my-document --listed
+
+# Remove it from the homepage without changing its share URL.
+vdocs publish ./file.html --public --slug my-document --unlisted
+```
+
+Updates preserve visibility unless a flag changes it. Unlisted documents are omitted from the deployed catalog, homepage and search; their HTML receives noindex/nofollow and no-referrer metadata. These are discoverability and referrer precautions, **not access control**. Anyone with the URL can read the content, and the full registry/content remain visible in this public GitHub repository and its history. No password or login is provided by unlisted mode. Never store sensitive documents here.
+
+During migration, built-in listed guide URLs retain legacy redirects. The unlisted Hello Vibe Docs demo has no redirect from its old guessable URL. Its new random URL is the share link. Ordinary updates to it keep that random URL stable.

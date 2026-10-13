@@ -14,7 +14,7 @@ function render(){
     if(d.expiresAt)body.append(node('div','card-expiry',`Expires ${new Date(d.expiresAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}`));
     const actions=node('div','card-actions'),view=node('a','view','Open document ↗');view.href=d.path;
     const share=node('button','','Copy link');share.type='button';share.setAttribute('aria-label',`Copy link to ${d.title}`);share.onclick=()=>copy(new URL(d.path,location.href).href);
-    const download=node('a','download','Download ↓');download.href=d.path;download.download=`${d.slug}.html`;download.setAttribute('aria-label',`Download ${d.title} HTML`);
+    const download=node('a','download','Download ↓');download.href=d.path;download.download=`${d.id}.html`;download.setAttribute('aria-label',`Download ${d.title} HTML`);
     actions.append(view,share,download);body.append(node('span','card-category',d.category.toUpperCase()),heading,node('p','',d.description),meta,actions);card.append(visual,body);$('#documents').append(card);
   }
   document.querySelectorAll('#categories button').forEach(b=>b.setAttribute('aria-pressed',String(b.textContent===category)));
@@ -24,6 +24,6 @@ $('#copy-command').onclick=()=>copy('vdocs publish file.html --public');
 document.addEventListener('keydown',e=>{if(e.key==='/'&&!['INPUT','TEXTAREA'].includes(document.activeElement.tagName)&&!document.activeElement.isContentEditable){e.preventDefault();$('#search').focus();}});
 fetch('documents.json',{cache:'no-cache'}).then(r=>{if(!r.ok)throw Error();return r.json();}).then(data=>{
   if(!Array.isArray(data))throw Error();
-  docs=data.filter(d=>/^[a-z0-9][a-z0-9-]*$/.test(d.slug)&&d.path===`docs/${d.slug}/index.html`&&typeof d.title==='string'&&typeof d.category==='string'&&typeof d.description==='string').filter(d=>!d.expiresAt||Date.parse(d.expiresAt)>Date.now()).sort((a,b)=>new Date(b.updatedAt)-new Date(a.updatedAt));
+  docs=data.filter(d=>/^[a-f0-9]{32}$/.test(d.id)&&d.path===`docs/${d.id}/index.html`&&typeof d.title==='string'&&typeof d.category==='string'&&typeof d.description==='string').filter(d=>!d.expiresAt||Date.parse(d.expiresAt)>Date.now()).sort((a,b)=>new Date(b.updatedAt)-new Date(a.updatedAt));
   for(const c of ['All documents',...new Set(docs.map(d=>d.category))]){const b=node('button','',c);b.type='button';b.onclick=()=>{category=c;render();};$('#categories').append(b);}render();
 }).catch(()=>{$('#documents').textContent='The library could not load. Please refresh and try again.';$('#count').textContent='—';});

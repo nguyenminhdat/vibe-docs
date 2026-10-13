@@ -4,6 +4,8 @@ import path from 'node:path';
 import os from 'node:os';
 import {fileURLToPath} from 'node:url';
 import {execFileSync} from 'node:child_process';
+import {randomBytes} from 'node:crypto';
+import {validate,catalog,unlistedHtml} from '../scripts/catalog.mjs';
 export const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const allowed=new Set('.html .htm .css .js .mjs .svg .png .jpg .jpeg .gif .webp .avif .ico .woff .woff2 .ttf .otf .mp4 .webm .pdf .json .txt'.split(' '));
 const textTypes=new Set('.html .htm .css .js .mjs .svg .json .txt'.split(' '));
@@ -57,7 +59,7 @@ export function collect(source){
   return {files,size,entry,base};
 }
 function run(cmd,args,cwd=root){return execFileSync(cmd,args,{cwd,encoding:'utf8',stdio:['ignore','pipe','pipe']}).trim();}
-function options(args){const out={};for(let i=0;i<args.length;i++){const key=args[i];if(!key.startsWith('--'))throw Error(`Unexpected argument: ${key}`);if(['--public','--no-push','--no-expiry'].includes(key))out[key.slice(2)]=true;else if(['--slug','--title','--category','--description','--expires-in'].includes(key)){if(!args[i+1]||args[i+1].startsWith('--'))throw Error(`Missing value for ${key}`);out[key.slice(2)]=args[++i];}else throw Error(`Unknown option: ${key}`);}return out;}
+function options(args){const out={};for(let i=0;i<args.length;i++){const key=args[i];if(!key.startsWith('--'))throw Error(`Unexpected argument: ${key}`);if(['--public','--no-push','--no-expiry','--listed','--unlisted'].includes(key))out[key.slice(2)]=true;else if(['--slug','--title','--category','--description','--expires-in'].includes(key)){if(!args[i+1]||args[i+1].startsWith('--'))throw Error(`Missing value for ${key}`);out[key.slice(2)]=args[++i];}else throw Error(`Unknown option: ${key}`);}return out;}
 export function expiration(opts,previous,now=Date.now()){
   if(opts['no-expiry']&&opts['expires-in'])throw Error('Use either --expires-in or --no-expiry');
   if(opts['no-expiry'])return undefined;
@@ -67,33 +69,41 @@ export function expiration(opts,previous,now=Date.now()){
 }
 export function publish(source,opts={},repoRoot=root){
   if(!opts.public)throw Error('This is a PUBLIC repository. Confirm the document is cleared for public sharing with --public. Never publish internal or sensitive data.');
+  if(opts.listed&&opts.unlisted)throw Error('Use either --listed or --unlisted');
   const bundle=collect(source),slug=opts.slug||path.basename(path.resolve(source),path.extname(source)).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
   if(!/^[a-z0-9][a-z0-9-]{0,79}$/.test(slug))throw Error('Slug must be 1–80 lowercase letters, numbers or hyphens');
-  const publicDir=path.join(repoRoot,'public'),manifest=path.join(publicDir,'documents.json'),target=path.join(publicDir,'docs',slug);
-  if(inside(target,path.resolve(source)))throw Error('Source must be outside the published document folder');
-  let docs=JSON.parse(fs.readFileSync(manifest,'utf8')),previous=docs.find(d=>d.slug===slug);
-  const title=opts.title||previous?.title||fs.readFileSync(bundle.entry,'utf8').match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]?.replace(/<[^>]*>/g,'').trim()||slug;
-  const record={slug,title,category:opts.category||previous?.category||'Documents',description:opts.description??previous?.description??'A public HTML document.',path:`docs/${slug}/index.html`,updatedAt:new Date().toISOString(),size:bundle.size};
-  const expiresAt=expiration(opts,previous);if(expiresAt)record.expiresAt=expiresAt;
-  scan('metadata',JSON.stringify(record));
+  const publicDir=path.join(repoRoot,'public'),manifest=path.join(repoRoot,'documents.json');
+  if(inside(path.join(publicDir,'docs'),path.resolve(source)))throw Error('Source must be outside the published document folder');
+  let docs=JSON.parse(fs.readFileSync(manifest,'utf8'));validate(docs);
+  expiration(opts,docs.find(d=>d.slug===slug));
   if(!opts['no-push']){
     run('gh',['auth','status'],repoRoot);
     if(run('git',['branch','--show-current'],repoRoot)!=='main')throw Error('Publish from the main branch');
     if(run('git',['status','--porcelain'],repoRoot))throw Error('Working tree must be clean before publishing. Commit or stash your changes first.');
     run('git',['pull','--ff-only'],repoRoot);
-    docs=JSON.parse(fs.readFileSync(manifest,'utf8'));
-    // Reload remote metadata after pulling to avoid overwriting concurrent updates.
-    previous=docs.find(d=>d.slug===slug);const refreshedExpiry=expiration(opts,previous);if(refreshedExpiry)record.expiresAt=refreshedExpiry;else delete record.expiresAt;for(const key of ['title','category','description'])if(opts[key]===undefined&&previous)record[key]=previous[key];
+    docs=JSON.parse(fs.readFileSync(manifest,'utf8'));validate(docs);
   }
-  const temp=fs.mkdtempSync(path.join(os.tmpdir(),'vdocs-'));
-  try{for(const [rel,bytes] of bundle.files){const dest=path.join(temp,rel);fs.mkdirSync(path.dirname(dest),{recursive:true});fs.writeFileSync(dest,bytes);}fs.mkdirSync(path.dirname(target),{recursive:true});fs.rmSync(target,{recursive:true,force:true});fs.cpSync(temp,target,{recursive:true});}finally{fs.rmSync(temp,{recursive:true,force:true});}
-  docs=docs.filter(d=>d.slug!==slug);docs.push(record);fs.writeFileSync(manifest,JSON.stringify(docs,null,2)+'\n');
-  if(!opts['no-push']){run('git',['add','--',`public/docs/${slug}`,'public/documents.json'],repoRoot);run('git',['commit','-m',`Publish document: ${slug}`],repoRoot);run('git',['push','origin','main'],repoRoot);}
+  const previous=docs.find(d=>d.slug===slug);
+  let id=previous?.id;
+  if(!id){do{id=randomBytes(16).toString('hex');}while(docs.some(d=>d.id===id));}
+  const title=opts.title||previous?.title||fs.readFileSync(bundle.entry,'utf8').match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]?.replace(/<[^>]*>/g,'').trim()||slug;
+  const visibility=opts.listed?'listed':opts.unlisted?'unlisted':previous?.visibility||'unlisted';
+  const record={slug,id,title,category:opts.category||previous?.category||'Documents',description:opts.description??previous?.description??'A public HTML document.',path:`docs/${id}/index.html`,visibility,updatedAt:new Date().toISOString(),size:bundle.size};
+  if(previous?.aliases)record.aliases=previous.aliases;
+  const expiresAt=expiration(opts,previous);if(expiresAt)record.expiresAt=expiresAt;
+  scan('metadata',JSON.stringify(record));
+  const target=path.join(publicDir,'docs',id),temp=fs.mkdtempSync(path.join(os.tmpdir(),'vdocs-'));
+  try{
+    for(const [rel,bytes] of bundle.files){const dest=path.join(temp,rel);fs.mkdirSync(path.dirname(dest),{recursive:true});fs.writeFileSync(dest,visibility==='unlisted'&&/\.html?$/i.test(rel)?unlistedHtml(bytes.toString()):bytes);}
+    fs.mkdirSync(path.dirname(target),{recursive:true});fs.rmSync(target,{recursive:true,force:true});fs.cpSync(temp,target,{recursive:true});
+  }finally{fs.rmSync(temp,{recursive:true,force:true});}
+  docs=docs.filter(d=>d.slug!==slug);docs.push(record);fs.writeFileSync(manifest,JSON.stringify(docs,null,2)+'\n');catalog(repoRoot);
+  if(!opts['no-push']){run('git',['add','--',`public/docs/${id}`,'public/documents.json','documents.json'],repoRoot);run('git',['commit','-m',`Publish document: ${slug}`],repoRoot);run('git',['push','origin','main'],repoRoot);}
   return record;
 }
 function main(){
   const [command,source,...args]=process.argv.slice(2);
-  if(command!=='publish'||!source){console.log('Usage: vdocs publish <file.html|folder> --public [--slug name] [--title "Title"] [--category Guides] [--description "Summary"] [--expires-in 7d | --no-expiry] [--no-push]');return;}
-  const record=publish(source,options(args));console.log(`Published ${record.title}\nhttps://nguyenminhdat.github.io/vibe-docs/${record.path.replace('index.html','')}\n${args.includes('--no-push')?'Local only; changes were not committed or pushed.':'GitHub Pages is deploying. Check: gh run list --workflow pages.yml'}`);
+  if(command!=='publish'||!source){console.log('Usage: vdocs publish <file.html|folder> --public [--slug name] [--title "Title"] [--category Guides] [--description "Summary"] [--expires-in 7d | --no-expiry] [--listed | --unlisted] [--no-push]');return;}
+  const record=publish(source,options(args));console.log(`Published ${record.title} (${record.visibility}; public repository)\nhttps://nguyenminhdat.github.io/vibe-docs/${record.path.replace('index.html','')}\n${args.includes('--no-push')?'Local only; changes were not committed or pushed.':'GitHub Pages is deploying. Check: gh run list --workflow pages.yml'}`);
 }
 if(process.argv[1]&&fs.realpathSync(process.argv[1])===fileURLToPath(import.meta.url)){try{main();}catch(e){console.error(`vdocs: ${e.message}`);process.exitCode=1;}}
