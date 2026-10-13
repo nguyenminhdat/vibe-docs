@@ -1,32 +1,32 @@
 [
   {
-    "slug": "welcome",
     "title": "Welcome to Vibe Docs",
     "category": "Guides",
     "description": "A quick guide to publishing beautiful HTML documents with one command.",
     "path": "docs/e08ff20fed3f9f2d3761142bd1e00a64/index.html",
     "updatedAt": "2026-10-13T10:00:00.000Z",
     "size": 1584,
-    "id": "e08ff20fed3f9f2d3761142bd1e00a64"
+    "id": "e08ff20fed3f9f2d3761142bd1e00a64",
+    "slug": "e08ff20fed3f9f2d3761142bd1e00a64"
   },
   {
-    "slug": "publishing-guide",
     "title": "The one-command publishing guide",
     "category": "Guides",
     "description": "From local HTML to a stable, shareable URL. A practical walkthrough.",
     "path": "docs/b75d992ac05f6020c15c735038fc9050/index.html",
     "updatedAt": "2026-10-13T10:00:00.000Z",
     "size": 1746,
-    "id": "b75d992ac05f6020c15c735038fc9050"
+    "id": "b75d992ac05f6020c15c735038fc9050",
+    "slug": "b75d992ac05f6020c15c735038fc9050"
   },
   {
-    "slug": "html-starter",
     "title": "A minimal HTML document starter",
     "category": "Templates",
     "description": "A clean, responsive starting point for your next public document.",
     "path": "docs/c448737496074d3eb6805a0be170ba49/index.html",
     "updatedAt": "2026-10-13T10:22:17.821Z",
     "size": 1792,
-    "id": "c448737496074d3eb6805a0be170ba49"
+    "id": "c448737496074d3eb6805a0be170ba49",
+    "slug": "c448737496074d3eb6805a0be170ba49"
   }
 ]

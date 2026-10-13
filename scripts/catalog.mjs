@@ -18,7 +18,8 @@ export function catalog(repoRoot=process.cwd(),now=Date.now()){
   return listed;
 }
 export function listedRecords(docs,now=Date.now()){
-  return docs.filter(d=>d.visibility==='listed'&&(!d.expiresAt||Date.parse(d.expiresAt)>now)).map(({aliases,visibility,...d})=>d);
+  // Keep old cached clients compatible without exposing the logical publishing key.
+  return docs.filter(d=>d.visibility==='listed'&&(!d.expiresAt||Date.parse(d.expiresAt)>now)).map(({aliases,visibility,slug,...d})=>({...d,slug:d.id}));
 }
 export function unlistedHtml(text){
   // A crawler hint and referrer protection, not authentication or encryption.
