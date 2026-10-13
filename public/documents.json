@@ -25,5 +25,14 @@
     "path": "docs/html-starter/index.html",
     "updatedAt": "2026-10-13T10:22:17.821Z",
     "size": 1792
+  },
+  {
+    "slug": "hello-vibe-docs",
+    "title": "Hello Vibe Docs",
+    "category": "Demo",
+    "description": "Demo công khai: giao diện xanh lá, đổi sáng/tối và publish đầy đủ CSS, JS, SVG.",
+    "path": "docs/hello-vibe-docs/index.html",
+    "updatedAt": "2026-10-13T10:32:40.296Z",
+    "size": 4433
   }
 ]
