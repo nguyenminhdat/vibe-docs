@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import {execFileSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
 import {collect,publish,scan} from '../bin/vdocs.mjs';
 function fixture(t){const dir=fs.mkdtempSync(path.join(os.tmpdir(),'vdocs-test-'));t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));return dir;}
 function write(dir,name,text){const p=path.join(dir,name);fs.mkdirSync(path.dirname(p),{recursive:true});fs.writeFileSync(p,text);return p;}
@@ -13,3 +15,5 @@ test('blocks secret tokens, sensitive filenames and internal URLs',()=>{assert.t
 test('rejects path traversal, missing assets, symlinks and root-relative URLs',t=>{const dir=fixture(t),src=path.join(dir,'source');write(dir,'outside.svg','<svg/>');let file=write(src,'index.html','<img src="../outside.svg">');assert.throws(()=>collect(file),/escapes/);write(src,'index.html','<img src="missing.svg">');assert.throws(()=>collect(file),/Missing/);write(src,'index.html','<img src="/outside.svg">');assert.throws(()=>collect(file),/Root-relative/);write(src,'index.html','<img src="link.svg">');fs.symlinkSync(path.join(dir,'outside.svg'),path.join(src,'link.svg'));assert.throws(()=>collect(file),/Symlink/);});
 test('folder publish includes dynamically loaded assets without unrelated external fetches',t=>{const dir=fixture(t);write(dir,'index.html','<script src="https://example.com/app.js"></script>');write(dir,'dynamic/pic.svg','<svg/>');assert.ok(collect(dir).files.has('dynamic/pic.svg'));});
 test('rejects malicious slugs before writing',t=>{const dir=fixture(t),file=write(dir,'x.html','<title>X</title>');assert.throws(()=>publish(file,{public:true,slug:'../escape','no-push':true},dir),/Slug/);});
+
+test('npm-linked command executes through a symlink',t=>{const dir=fixture(t),cli=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../bin/vdocs.mjs'),link=path.join(dir,'vdocs');fs.symlinkSync(cli,link);const result=execFileSync(process.execPath,[link],{encoding:'utf8'});assert.match(result,/Usage: vdocs publish/);});

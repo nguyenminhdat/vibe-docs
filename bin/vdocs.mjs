@@ -88,4 +88,4 @@ function main(){
   if(command!=='publish'||!source){console.log('Usage: vdocs publish <file.html|folder> --public [--slug name] [--title "Title"] [--category Guides] [--description "Summary"] [--no-push]');return;}
   const record=publish(source,options(args));console.log(`Published ${record.title}\nhttps://nguyenminhdat.github.io/vibe-docs/${record.path.replace('index.html','')}\n${args.includes('--no-push')?'Local only; changes were not committed or pushed.':'GitHub Pages is deploying. Check: gh run list --workflow pages.yml'}`);
 }
-if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){try{main();}catch(e){console.error(`vdocs: ${e.message}`);process.exitCode=1;}}
+if(process.argv[1]&&fs.realpathSync(process.argv[1])===fileURLToPath(import.meta.url)){try{main();}catch(e){console.error(`vdocs: ${e.message}`);process.exitCode=1;}}
