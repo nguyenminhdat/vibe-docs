@@ -27,3 +27,8 @@ export function unlistedHtml(text){
   if(/<head\b[^>]*>/i.test(text))return text.replace(/<head\b[^>]*>/i,m=>m+metadata);
   return metadata+text;
 }
+export function downloadHtml(text){
+  if(text.includes('data-vdocs-download'))return text;
+  const button='<a data-vdocs-download href="./index.html" download="document.html" aria-label="Tải tài liệu HTML" style="position:fixed;right:20px;bottom:20px;z-index:2147483647;display:inline-block;padding:12px 18px;border-radius:12px;background:#347b4d;color:#fff;font:600 14px/1.4 system-ui,sans-serif;text-decoration:none;box-shadow:0 4px 18px #0002">↓ Tải HTML</a>';
+  return /<\/body\s*>/i.test(text)?text.replace(/<\/body\s*>/i,button+'$&'):text+button;
+}

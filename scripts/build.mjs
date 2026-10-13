@@ -1,6 +1,6 @@
 import {cpSync,rmSync,readFileSync,mkdirSync,writeFileSync,existsSync} from 'node:fs';
 import {createHash} from 'node:crypto';
-import {catalog,validate} from './catalog.mjs';
+import {catalog,validate,downloadHtml} from './catalog.mjs';
 catalog();
 const docs=JSON.parse(readFileSync('documents.json','utf8'));validate(docs);
 rmSync('dist',{recursive:true,force:true});
@@ -14,6 +14,7 @@ if(existsSync('dist/index.html')){
   writeFileSync('dist/index.html',html);
 }
 for(const d of docs){
+  writeFileSync(`dist/${d.path}`,downloadHtml(readFileSync(`dist/${d.path}`,'utf8')));
   if(d.visibility!=='listed'||(d.expiresAt&&Date.parse(d.expiresAt)<=Date.now()))continue;
   for(const alias of d.aliases||[]){
     mkdirSync(`dist/docs/${alias}`,{recursive:true});

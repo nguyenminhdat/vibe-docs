@@ -5,7 +5,7 @@ import os from 'node:os';
 import {fileURLToPath} from 'node:url';
 import {execFileSync} from 'node:child_process';
 import {randomBytes} from 'node:crypto';
-import {validate,catalog,unlistedHtml} from '../scripts/catalog.mjs';
+import {validate,catalog,unlistedHtml,downloadHtml} from '../scripts/catalog.mjs';
 export const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const allowed=new Set('.html .htm .css .js .mjs .svg .png .jpg .jpeg .gif .webp .avif .ico .woff .woff2 .ttf .otf .mp4 .webm .pdf .json .txt'.split(' '));
 const textTypes=new Set('.html .htm .css .js .mjs .svg .json .txt'.split(' '));
@@ -94,7 +94,12 @@ export function publish(source,opts={},repoRoot=root){
   scan('metadata',JSON.stringify(record));
   const target=path.join(publicDir,'docs',id),temp=fs.mkdtempSync(path.join(os.tmpdir(),'vdocs-'));
   try{
-    for(const [rel,bytes] of bundle.files){const dest=path.join(temp,rel);fs.mkdirSync(path.dirname(dest),{recursive:true});fs.writeFileSync(dest,visibility==='unlisted'&&/\.html?$/i.test(rel)?unlistedHtml(bytes.toString()):bytes);}
+    for(const [rel,bytes] of bundle.files){
+      const dest=path.join(temp,rel);fs.mkdirSync(path.dirname(dest),{recursive:true});
+      let content=visibility==='unlisted'&&/\.html?$/i.test(rel)?unlistedHtml(bytes.toString()):bytes;
+      if(rel==='index.html')content=downloadHtml(content.toString());
+      fs.writeFileSync(dest,content);
+    }
     fs.mkdirSync(path.dirname(target),{recursive:true});fs.rmSync(target,{recursive:true,force:true});fs.cpSync(temp,target,{recursive:true});
   }finally{fs.rmSync(temp,{recursive:true,force:true});}
   docs=docs.filter(d=>d.slug!==slug);docs.push(record);fs.writeFileSync(manifest,JSON.stringify(docs,null,2)+'\n');catalog(repoRoot);
@@ -104,6 +109,6 @@ export function publish(source,opts={},repoRoot=root){
 function main(){
   const [command,source,...args]=process.argv.slice(2);
   if(command!=='publish'||!source){console.log('Usage: vdocs publish <file.html|folder> --public [--slug name] [--title "Title"] [--category Guides] [--description "Summary"] [--expires-in 7d | --no-expiry] [--listed | --unlisted] [--no-push]');return;}
-  const record=publish(source,options(args));console.log(`Published ${record.title} (${record.visibility}; public repository)\nhttps://nguyenminhdat.github.io/vibe-docs/${record.path.replace('index.html','')}\n${args.includes('--no-push')?'Local only; changes were not committed or pushed.':'GitHub Pages is deploying. Check: gh run list --workflow pages.yml'}`);
+  const record=publish(source,options(args));console.log(`Published ${record.title} (${record.visibility}; public repository; HTML download enabled)\nhttps://nguyenminhdat.github.io/vibe-docs/${record.path.replace('index.html','')}\n${args.includes('--no-push')?'Local only; changes were not committed or pushed.':'GitHub Pages is deploying. Check: gh run list -R nguyenminhdat/vibe-docs --workflow pages.yml'}`);
 }
 if(process.argv[1]&&fs.realpathSync(process.argv[1])===fileURLToPath(import.meta.url)){try{main();}catch(e){console.error(`vdocs: ${e.message}`);process.exitCode=1;}}

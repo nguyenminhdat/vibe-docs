@@ -22,3 +22,5 @@ When the user requests a limited publication window, add `--expires-in 7d` (or t
 ## Share URLs and visibility
 
 New documents receive a random 128-bit ID; preserve it on every update. `--slug` is the logical identity, not the public URL. New documents default to unlisted. Keep updates unlisted unless the user explicitly requests public catalog listing; add `--listed` for the homepage/search, or `--unlisted` to remove a listing. The CLI maintains root documents.json and generates a listed-only public/documents.json. Never copy the full registry into dist or public. Explain that unlisted is not private: repository content and Git history remain public. If the user needs restricted access or sensitive-document sharing, stop publication to this repository and request an authenticated private-storage solution.
+
+The CLI automatically enables an HTML download button on the document page. Do not manually insert a button just to publish. Verify its same-origin link and download attribute; the downloaded HTML does not bundle separate assets. From another project directory, always scope Actions checks to `-R nguyenminhdat/vibe-docs`.

@@ -94,3 +94,7 @@ vdocs publish ./file.html --public --slug my-document --unlisted
 Updates preserve visibility unless a flag changes it. Unlisted documents are omitted from the deployed catalog, homepage and search; their HTML receives noindex/nofollow and no-referrer metadata. These are discoverability and referrer precautions, **not access control**. Anyone with the URL can read the content, and the full registry/content remain visible in this public GitHub repository and its history. No password or login is provided by unlisted mode. Never store sensitive documents here.
 
 During migration, built-in listed guide URLs retain legacy redirects. The unlisted Hello Vibe Docs demo has no redirect from its old guessable URL. Its new random URL is the share link. Ordinary updates to it keep that random URL stable.
+
+## Download button from the CLI
+
+`vdocs publish` automatically adds a native **Tải HTML** button to the published page, including unlisted documents. The build also enables it for existing documents. No manual HTML edits are required; local source files stay unchanged. This downloads the published HTML file, including publishing metadata and the download button. Separate CSS/JS/images are not bundled into it; keep those assets for offline use or make your source HTML self-contained.
