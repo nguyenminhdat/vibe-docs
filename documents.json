@@ -40,29 +40,5 @@
     "aliases": [
       "html-starter"
     ]
-  },
-  {
-    "slug": "hello-vibe-docs",
-    "id": "240c3e35102e77376c9e1e6d859ad85f",
-    "title": "Hello Vibe Docs",
-    "category": "Demo",
-    "description": "Demo công khai: giao diện xanh lá, đổi sáng/tối và publish đầy đủ CSS, JS, SVG.",
-    "path": "docs/240c3e35102e77376c9e1e6d859ad85f/index.html",
-    "visibility": "unlisted",
-    "updatedAt": "2026-10-13T10:58:48.405Z",
-    "size": 4446,
-    "expiresAt": "2026-10-20T10:36:40.279Z"
-  },
-  {
-    "slug": "cowork-market-research",
-    "id": "ab8438d3cbbbc4d9b182f3a9b64bdc30",
-    "title": "AI Cowork — Market Research & Reference Architecture (AgentOps V2)",
-    "category": "Research",
-    "description": "AgentOps V2 Cowork — File 1: market research & reference architecture; File 2: final architecture.",
-    "path": "docs/ab8438d3cbbbc4d9b182f3a9b64bdc30/index.html",
-    "visibility": "unlisted",
-    "updatedAt": "2026-10-13T11:18:00.405Z",
-    "size": 298016,
-    "expiresAt": "2026-10-20T11:13:40.920Z"
   }
 ]
